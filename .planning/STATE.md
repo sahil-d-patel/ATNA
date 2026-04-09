@@ -5,11 +5,11 @@
 | Field | Value |
 |-------|--------|
 | **Phase** | 4 of 5 — Streamlit application |
-| **Plan** | 2 of 5 in phase |
+| **Plan** | 4 of 5 in phase |
 | **Status** | In progress — Phase 4 |
-| **Last activity** | 2026-04-09 — Completed `04-02` Streamlit explicit seven-page router and import-safe page scaffolds |
+| **Last activity** | 2026-04-09 — Completed `04-04` Communities/Route Explorer/Methodology artifact-backed pages |
 
-**Progress (all plans with SUMMARY):** 15 of 19 executable plans with summaries — ████████░░ 79%
+**Progress (all plans with SUMMARY):** 16 of 19 executable plans with summaries — ████████░░ 84%
 
 ## Current milestone
 
@@ -21,6 +21,7 @@
 
 ## Last completed
 
+- 2026-04-09: **`04-04-PLAN.md`** — implemented APP-04 `communities.py` (community summaries + ranked hub/bridge members), APP-05 `route_explorer.py` (criticality/cross-community filtering + ranking/chart), and APP-07 `methodology.py` (implementation-aligned formulas/limitations). Verified with headless Streamlit run and page smoke interactions. Summary: `.planning/phases/04-streamlit-application/04-04-SUMMARY.md`.
 - 2026-04-09: **`04-02-PLAN.md`** — implemented `src/app/streamlit_app.py` with explicit `st.Page` + `st.navigation` router (APP-01..APP-07) and created seven callable page scaffolds under `src/app/pages/`. Summary: `.planning/phases/04-streamlit-application/04-02-SUMMARY.md`.
 - 2026-04-09: **`04-01-PLAN.md`** — implemented `src/app/config.py` (canonical snapshot/artifact resolver), `src/app/data_loader.py` (cached schema-validated loaders), and `src/app/ui/components.py` + `src/app/ui/formatters.py` (empty-state-safe UI primitives). Summary: `.planning/phases/04-streamlit-application/04-01-SUMMARY.md`.
 - 2026-04-09: **`03-04-PLAN.md`** — implemented `src/scenarios/vulnerability.py` (deterministic airport-removal batch vulnerability computation), integrated scoring into `src/metrics/run_metrics.py`, and added METR-07 merge-safety/reproducibility coverage in `tests/test_vulnerability_metrics_integration.py`. Summary: `.planning/phases/03-scenario-engine-vulnerability-integration/03-04-SUMMARY.md`.
@@ -55,6 +56,9 @@
 | APP-01c | Page rendering should use shared helpers in `src/app/ui/components.py` to prevent empty-filter crashes with consistent "No rows for current filters." messaging. |
 | APP-02a | Streamlit app routing is explicit in `src/app/streamlit_app.py` via `st.Page` + `st.navigation` with deterministic APP-01..APP-07 order and no implicit page auto-discovery. |
 | APP-02b | `src/app/pages/*` now defines one callable `render_*_page()` scaffold per route target so downstream page plans can implement logic incrementally without import churn. |
+| APP-04a | APP-04 communities page now joins `communities.csv` + `metrics.csv` via `leiden_community_id`, exposing scoped summary cards and top hub/bridge rankings with empty-filter guards. |
+| APP-04b | APP-05 route explorer now consumes `route_metrics.csv` with threshold filters on `route_criticality_score`/`analysis_weight` and explicit `cross_community_flag` semantics (`100` vs `0`). |
+| APP-04c | APP-07 methodology is now implementation-aligned: formulas/limits are documented from locked spec and current code paths (including lambda=`0.35`, 2-hop ripple, and impact/network health equations). |
 
 ## Blockers
 
@@ -67,13 +71,13 @@ None recorded.
 
 ## Next actions
 
-1. Execute Phase 4 Plan 03 (`04-03-PLAN.md`) to implement Overview and Methodology pages on top of canonical loaders/helpers.
-2. Keep router/page contracts from `04-02` stable while replacing placeholders with artifact-backed page content.
+1. Execute Phase 4 Plan 05 (`04-05-PLAN.md`) to integrate scenario editor workflows and complete full app smoke coverage/checkpoint.
+2. Preserve APP-04/APP-05/APP-07 behavior contracts while finishing remaining Phase 4 pages.
 
 ## Session continuity
 
 | Field | Value |
 |-------|--------|
-| **Last session** | 2026-04-09 05:23Z |
-| **Stopped at** | Completed `04-02-PLAN.md` |
+| **Last session** | 2026-04-09 05:29Z |
+| **Stopped at** | Completed `04-04-PLAN.md` |
 | **Resume file** | None |
