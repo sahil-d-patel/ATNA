@@ -1,0 +1,87 @@
+# --- ATNA MVP: reproducible pipeline; repo holds code, config, manifests, tests ---
+# Raw BTS extracts and ZIP staging — large; re-fetch via scripts/download/
+data/raw/
+
+# ETL scratch (canonical tables live under data/processed/{snapshot_id}/)
+data/interim/*
+!data/interim/.gitkeep
+
+# Processed snapshot tables — reproducible: PYTHONPATH=src python -m etl.run_pipeline
+data/processed/*
+!data/processed/.gitkeep
+
+# Precomputed app / report outputs (figures, tables, scenarios per roadmap phases)
+outputs/*
+!outputs/tables/
+outputs/tables/*
+!outputs/tables/.gitkeep
+
+# Ad hoc notebooks — keep folder; ignore checkpoints only
+notebooks/exploration/.ipynb_checkpoints/
+
+# Downloader and pipeline logs
+logs/
+*.log
+
+# --- Python ---
+.venv/
+venv/
+env/
+.python-version
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.eggs/
+dist/
+build/
+*.egg
+pip-wheel-metadata/
+share/python-wheels/
+
+# --- Test & coverage ---
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+.hypothesis/
+coverage.xml
+*.cover
+
+# --- Type check / linters (if added later) ---
+.mypy_cache/
+.ruff_cache/
+.dmypy.json
+
+# --- Jupyter ---
+.ipynb_checkpoints/
+
+# --- Playwright (BTS download automation) ---
+playwright-report/
+test-results/
+blob-report/
+playwright/.cache/
+
+# --- Secrets & local env ---
+.env
+.env.*
+!.env.example
+
+# --- OS & editors ---
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Cursor / VS Code — local tooling (force-add shared .vscode settings if needed)
+.cursor/
+.vscode/
+.idea/
+
+# --- Misc ---
+*.swp
+*~
+.cache/
