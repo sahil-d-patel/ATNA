@@ -1,4 +1,8 @@
 # --- ATNA MVP: reproducible pipeline; repo holds code, config, manifests, tests ---
+# Course / team admin spreadsheets under organization/ may include names or other PII.
+# Version only the locked spec (*.md) and optional brand assets; not CSV exports.
+organization/*.csv
+
 # Raw BTS extracts and ZIP staging — large; re-fetch via scripts/download/
 data/raw/
 
