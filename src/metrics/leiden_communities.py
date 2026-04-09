@@ -11,6 +11,9 @@ from dataclasses import dataclass
 import pandas as pd
 import networkx as nx
 
+# Serialize lists of airport_ids into a single CSV cell.
+AIRPORT_ID_LIST_DELIM = "|"
+
 @dataclass(frozen=True)
 class LeidenParams:
     """Configuration for Leiden partitioning.
@@ -66,6 +69,100 @@ def compute_leiden_communities(
 
     _assert_partition_covers_nodes_exactly_once(g, airport_to_comm)
     return airport_to_comm
+
+
+def build_communities_frame(
+    *,
+    snapshot_id: str,
+    g: nx.DiGraph,
+    airport_to_comm: dict[int, int],
+    metrics_df: pd.DataFrame,
+    top_n: int = 5,
+) -> pd.DataFrame:
+    """Build `communities.csv` frame per spec §6.5 and formulas §7.9."""
+
+    _assert_partition_covers_nodes_exactly_once(g, airport_to_comm)
+    req_cols = {"airport_id", "hub_score", "bridge_score"}
+    missing = [c for c in req_cols if c not in metrics_df.columns]
+    if missing:
+        raise ValueError(f"metrics_df missing required columns for community rollups: {missing}")
+
+    # Normalize metrics columns.
+    m = metrics_df[["airport_id", "hub_score", "bridge_score"]].copy()
+    m["airport_id"] = pd.to_numeric(m["airport_id"], errors="raise").astype(int)
+    m["hub_score"] = pd.to_numeric(m["hub_score"], errors="coerce").astype(float)
+    m["bridge_score"] = pd.to_numeric(m["bridge_score"], errors="coerce").astype(float)
+
+    # Group airports by community.
+    comm_to_airports: dict[int, list[int]] = {}
+    for aid in sorted(int(n) for n in g.nodes()):
+        cid = int(airport_to_comm[int(aid)])
+        comm_to_airports.setdefault(cid, []).append(int(aid))
+
+    # Compute internal traffic + internal edge counts on the directed graph.
+    traffic = {cid: 0.0 for cid in comm_to_airports}
+    internal_edges = {cid: 0 for cid in comm_to_airports}
+    for u, v, d in g.edges(data=True):
+        cu = int(airport_to_comm[int(u)])
+        cv = int(airport_to_comm[int(v)])
+        if cu != cv:
+            continue
+        w = float(d.get("weight", 0.0))
+        traffic[cu] += w
+        internal_edges[cu] += 1
+
+    rows: list[dict[str, object]] = []
+    for cid, airports in sorted(comm_to_airports.items(), key=lambda kv: kv[0]):
+        size = int(len(airports))
+        if size < 2:
+            density = 0.0
+        else:
+            density = float(internal_edges[cid]) / float(size * (size - 1))
+
+        subset = m[m["airport_id"].isin(airports)].copy()
+        top_hubs = (
+            subset.sort_values(["hub_score", "airport_id"], ascending=[False, True])
+            .head(top_n)["airport_id"]
+            .astype(int)
+            .tolist()
+        )
+        top_bridges = (
+            subset.sort_values(["bridge_score", "airport_id"], ascending=[False, True])
+            .head(top_n)["airport_id"]
+            .astype(int)
+            .tolist()
+        )
+
+        rows.append(
+            {
+                "snapshot_id": str(snapshot_id),
+                "leiden_community_id": int(cid),
+                "community_size": size,
+                "community_traffic": float(traffic[cid]),
+                "internal_density": float(density),
+                "top_hub_airport_ids": AIRPORT_ID_LIST_DELIM.join(str(x) for x in top_hubs),
+                "top_bridge_airport_ids": AIRPORT_ID_LIST_DELIM.join(str(x) for x in top_bridges),
+            }
+        )
+
+    out = pd.DataFrame(rows)
+    # Canonical column order per §6.5
+    out = out[
+        [
+            "snapshot_id",
+            "leiden_community_id",
+            "community_size",
+            "community_traffic",
+            "internal_density",
+            "top_hub_airport_ids",
+            "top_bridge_airport_ids",
+        ]
+    ].copy()
+    out["leiden_community_id"] = out["leiden_community_id"].astype(int)
+    out["community_size"] = out["community_size"].astype(int)
+    out["community_traffic"] = out["community_traffic"].astype(float)
+    out["internal_density"] = out["internal_density"].astype(float)
+    return out
 
 
 def _assert_partition_covers_nodes_exactly_once(
