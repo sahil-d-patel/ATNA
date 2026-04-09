@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 import networkx as nx
 
@@ -15,6 +14,7 @@ from metrics.hub_bridge import add_hub_bridge_scores
 from metrics.leiden_communities import build_communities_frame, compute_leiden_communities
 from metrics.route_criticality import build_route_metrics_frame, write_route_metrics_csv
 from metrics.tables import assert_metr02_nodes_match_graph, load_nodes
+from scenarios.vulnerability import build_vulnerability_scores
 
 
 _METRICS_COL_ORDER = [
@@ -83,10 +83,21 @@ def build_metrics_frame(cfg: MetricsConfig, *, g: "nx.DiGraph | None" = None) ->
 
     out = base.merge(scored[["airport_id", "hub_score", "bridge_score"]], on="airport_id", how="left")
 
-    out["vulnerability_score"] = np.nan
-
     airport_to_comm = compute_leiden_communities(g)
     out["leiden_community_id"] = out["airport_id"].map(airport_to_comm).astype(int)
+
+    vulnerability = build_vulnerability_scores(
+        snapshot_id=cfg.snapshot_id,
+        baseline_graph=g,
+        metrics_df=out[["snapshot_id", "airport_id", "bridge_score"]].copy(),
+    )
+    out = out.merge(
+        vulnerability,
+        on=["snapshot_id", "airport_id"],
+        how="left",
+        validate="one_to_one",
+    )
+    out["vulnerability_score"] = out["vulnerability_score"].astype(float)
 
     out = out[_METRICS_COL_ORDER].copy()
     out["snapshot_id"] = out["snapshot_id"].astype(str)
