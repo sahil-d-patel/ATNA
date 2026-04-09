@@ -5,9 +5,9 @@
 | Field | Value |
 |-------|--------|
 | **Phase** | 2 of 5 — Graph metrics & communities |
-| **Plan** | 1 of 6 in phase (`02-01` complete) |
+| **Plan** | 2 of 6 in phase (`02-02` complete) |
 | **Status** | In progress — Phase 2 |
-| **Last activity** | 2026-04-09 — Completed `02-01-PLAN.md` (METR-01 graph foundation) |
+| **Last activity** | 2026-04-09 — Completed `02-02-PLAN.md` (METR-03 centralities) |
 
 **Progress (all plans with SUMMARY):** 5 of 10 executable plans with summaries — █████░░░░░ 50%
 
@@ -21,6 +21,7 @@
 
 ## Last completed
 
+- 2026-04-09: **`02-02-PLAN.md`** — `percentile.py`, `centralities.py` (METR-03), `tests/test_centralities.py`. Summary: `.planning/phases/02-graph-metrics-communities/02-02-SUMMARY.md`.
 - 2026-04-09: **`02-01-PLAN.md`** — `src/metrics` package, deps, `MetricsConfig`, `graph_builder` (METR-01), `tests/test_metrics_graph.py`. Summary: `.planning/phases/02-graph-metrics-communities/02-01-SUMMARY.md`.
 
 ## Decisions (accumulated)
@@ -45,7 +46,7 @@ None recorded.
 
 ## Next actions
 
-1. Execute **`02-02-PLAN.md`** — centralities (METR-03) when ready.
+1. Execute **`02-03-PLAN.md`** — hub/bridge and partial metrics.csv.
 2. Continue Phase 2 plans per roadmap.
 
 ## Session continuity
