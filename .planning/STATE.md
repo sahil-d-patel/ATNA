@@ -4,12 +4,12 @@
 
 | Field | Value |
 |-------|--------|
-| **Phase** | 3 of 5 — Scenario engine & vulnerability integration |
-| **Plan** | 3 of 4 in phase (`03-03` complete) |
-| **Status** | In progress — Phase 3 |
-| **Last activity** | 2026-04-09 — Completed `03-03` scenario engine orchestration + artifact writers + CLI demo runner + contract tests |
+| **Phase** | 4 of 5 — Streamlit application |
+| **Plan** | 0 of TBD in phase (Phase 4 not started) |
+| **Status** | In progress — Phase 4 |
+| **Last activity** | 2026-04-09 — Completed `03-04` vulnerability batch integration + metrics pipeline wiring + METR-07 tests |
 
-**Progress (all plans with SUMMARY):** 12 of 14 executable plans with summaries — █████████░ 86%
+**Progress (all plans with SUMMARY):** 13 of 14 executable plans with summaries — ██████████░ 93%
 
 ## Current milestone
 
@@ -17,10 +17,11 @@
 
 ## Phase focus
 
-**Phase 3** — Scenario engine & vulnerability integration (see `.planning/ROADMAP.md`).
+**Phase 4** — Streamlit application (see `.planning/ROADMAP.md`).
 
 ## Last completed
 
+- 2026-04-09: **`03-04-PLAN.md`** — implemented `src/scenarios/vulnerability.py` (deterministic airport-removal batch vulnerability computation), integrated scoring into `src/metrics/run_metrics.py`, and added METR-07 merge-safety/reproducibility coverage in `tests/test_vulnerability_metrics_integration.py`. Summary: `.planning/phases/03-scenario-engine-vulnerability-integration/03-04-SUMMARY.md`.
 - 2026-04-09: **`03-03-PLAN.md`** — implemented `src/scenarios/engine.py` (deterministic scenario orchestration and IDs), `src/scenarios/artifacts.py` (schema-ordered CSV writers), `src/scenarios/run_scenarios.py` (deterministic mixed 3-scenario CLI), and `tests/test_scenario_engine_artifacts.py` (contracts + invariants + temp-config batch test). Summary: `.planning/phases/03-scenario-engine-vulnerability-integration/03-03-SUMMARY.md`.
 - 2026-04-09: **`03-02-PLAN.md`** — implemented `src/scenarios/ripple.py` (2-hop propagation, lambda discount, route endpoint seeding), `src/scenarios/scoring.py` (locked aggregate formulas + guards), and `tests/test_scenario_ripple_scoring.py` (deterministic invariants). Summary: `.planning/phases/03-scenario-engine-vulnerability-integration/03-02-SUMMARY.md`.
 - 2026-04-09: **`03-01-PLAN.md`** — scenario config contracts, typed scenario models, immutable `remove_airport`/`remove_route`, and contract tests. Summary: `.planning/phases/03-scenario-engine-vulnerability-integration/03-01-SUMMARY.md`.
@@ -46,6 +47,7 @@
 | SCEN-02a | Ripple propagation is locked to exactly two hops with **`lambda=0.35`**, using dependency weights **`W(i,j)=w(i,j)+w(j,i)`** and explicit hop provenance metadata. |
 | SCEN-03a | Aggregate scenario score cards are locked to spec formulas (`lcc_loss`, `reachability_loss`, `ripple_severity`, `impact_score`, `network_health`) with deterministic denominator/finite-value guards. |
 | SCEN-03b | Scenario execution IDs are deterministic (`scn_<sha256-prefix>`) from snapshot, scenario type, and canonical payload JSON to guarantee repeatability. |
+| SCEN-04a | METR-07 vulnerability is computed in canonical `run_metrics` using `0.60 * impact_pct + 0.40 * bridge_pct`, with impact from airport-removal scenario batch and one-to-one key merge on (`snapshot_id`, `airport_id`). |
 
 ## Blockers
 
@@ -54,17 +56,17 @@ None recorded.
 ## Notes
 
 - Domain ecosystem research was **skipped** by user choice; rely on locked spec for scope.
-- **METR-07** (vulnerability) depends on scenario impact; implementation order may compute vulnerability after SCEN-* or via batch—track during Phase 3 execution.
+- Phase 3 complete: scenario artifacts and METR-07 vulnerability integration are now locked and test-covered.
 
 ## Next actions
 
-1. Execute `03-04-PLAN.md` (vulnerability integration into `metrics.csv` using scenario impact outputs).
-2. Preserve locked ripple/scoring/ID rules from `03-03` without drift.
+1. Start Phase 4 Plan 01 (`04-01-PLAN.md`) for Streamlit application foundations.
+2. Consume `metrics.csv` vulnerability_score directly in Airport Explorer / scenario-facing UI.
 
 ## Session continuity
 
 | Field | Value |
 |-------|--------|
-| **Last session** | 2026-04-09 09:26Z |
-| **Stopped at** | Completed `03-03-PLAN.md` |
+| **Last session** | 2026-04-09 09:35Z |
+| **Stopped at** | Completed `03-04-PLAN.md` |
 | **Resume file** | None |
