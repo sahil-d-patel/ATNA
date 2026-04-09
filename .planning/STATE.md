@@ -5,11 +5,11 @@
 | Field | Value |
 |-------|--------|
 | **Phase** | 1 of 5 — Repository & data foundation |
-| **Plan** | 01-02 complete; next **01-03** (ETL airports/edges) |
+| **Plan** | 01-03 complete; next **01-04** (nodes, pipeline, validation notes) |
 | **Status** | In progress — Phase 1 |
-| **Last activity** | 2026-04-08 — Completed `01-02-PLAN.md` |
+| **Last activity** | 2026-04-08 — Completed `01-03-PLAN.md` |
 
-**Progress (Phase 1 plans):** ██░░ 2/4 (50%)
+**Progress (Phase 1 plans):** ███░ 3/4 (75%)
 
 ## Current milestone
 
@@ -21,7 +21,7 @@
 
 ## Last completed
 
-- 2026-04-08: **`01-02-PLAN.md`** — `config/atna.yaml`, `src/etl/config.py` (`load_config`, `validate_paths`), README pipeline configuration. Summary: `.planning/phases/01-repository-data-foundation/01-02-SUMMARY.md`.
+- 2026-04-08: **`01-03-PLAN.md`** — `load_raw.py`, `build_airports.py`, `build_edges.py`, pytest contracts, §6.1/§6.2 CSVs under `data/processed/{snapshot_id}/`. Summary: `.planning/phases/01-repository-data-foundation/01-03-SUMMARY.md`.
 
 ## Decisions (accumulated)
 
@@ -30,6 +30,7 @@
 | REPO-02 | Canonical schema/metrics/UI contract is **`organization/ATNA_MVP_Technical_Spec_and_Workflow.md`** only; see `docs/specs/README.md`. |
 | DATA-01 | **`data/raw/`** must not be silently overwritten; use new paths/suffixes for refreshes. |
 | CFG-01 | Pipeline paths and MVP **`snapshot_id`** live in **`config/atna.yaml`**; loader resolves paths from repo root via `src/etl/config.py`. |
+| DATA-02/03 | **§6.1/§6.2 ETL** uses DOT `*_AIRPORT_ID` joins; **`pct_delayed`** = share with **`ARR_DELAY` > 15** min (non-null delays); **`analysis_weight`** = **`numpy.log1p(flight_count)`**; **`timezone`** from master **`UTC_LOCAL_TIME_VARIATION`**. |
 
 ## Blockers
 
@@ -42,13 +43,12 @@ None recorded.
 
 ## Next actions
 
-1. Execute **`01-03-PLAN.md`** — ETL `airports.csv` / `edges.csv`.
-2. Continue Phase 1: `01-04`.
+1. Execute **`01-04-PLAN.md`** — `nodes.csv`, pipeline entrypoint, validation notes.
 
 ## Session continuity
 
 | Field | Value |
 |-------|--------|
 | **Last session** | 2026-04-08 |
-| **Stopped at** | Completed `01-02-PLAN.md` |
+| **Stopped at** | Completed `01-03-PLAN.md` |
 | **Resume file** | None |
