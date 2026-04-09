@@ -6,6 +6,9 @@ from textwrap import dedent
 
 from streamlit.testing.v1 import AppTest
 
+# Artifact-backed pages can exceed AppTest's default ~3s script completion window on cold runs.
+_RUN_TIMEOUT_S = 60.0
+
 
 def _run_page(function_import: str, function_name: str) -> AppTest:
     script = dedent(
@@ -15,7 +18,7 @@ def _run_page(function_import: str, function_name: str) -> AppTest:
         """
     )
     app = AppTest.from_string(script)
-    app.run()
+    app.run(timeout=_RUN_TIMEOUT_S)
     return app
 
 
@@ -43,7 +46,7 @@ def test_empty_state_resilience_for_filterable_pages() -> None:
     _assert_no_exception(network)
     if network.multiselect:
         network.multiselect[0].set_value([])
-        network.run()
+        network.run(timeout=_RUN_TIMEOUT_S)
         _assert_no_exception(network)
         assert any("No rows for current filters." in node.value for node in network.info)
 
@@ -51,7 +54,7 @@ def test_empty_state_resilience_for_filterable_pages() -> None:
     _assert_no_exception(airport)
     if len(airport.multiselect) > 0:
         airport.multiselect[0].set_value([])
-        airport.run()
+        airport.run(timeout=_RUN_TIMEOUT_S)
         _assert_no_exception(airport)
         assert any("No rows for current filters." in node.value for node in airport.info)
 
@@ -62,7 +65,7 @@ def test_scenario_editor_form_submit_airport_and_route_runs() -> None:
 
     if app.button:
         app.button[0].click()
-        app.run()
+        app.run(timeout=_RUN_TIMEOUT_S)
         _assert_no_exception(app)
         assert any("Scenario result row" in node.value for node in app.subheader)
 
@@ -72,6 +75,6 @@ def test_scenario_editor_form_submit_airport_and_route_runs() -> None:
         app.radio[0].set_value("Route removal")
     if app.button:
         app.button[0].click()
-    app.run()
+    app.run(timeout=_RUN_TIMEOUT_S)
     _assert_no_exception(app)
     assert any("Affected airports" in node.value for node in app.subheader)
