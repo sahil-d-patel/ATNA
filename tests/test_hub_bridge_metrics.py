@@ -54,7 +54,7 @@ def test_metrics_csv_written_if_processed_inputs_exist(tmp_path: Path):
         processed_dir=cfg.processed_dir,
         edges_csv=cfg.edges_csv,
         metrics_csv=(tmp_path / "metrics.csv").resolve(),
-        communities_csv=cfg.communities_csv,
+        communities_csv=(tmp_path / "communities.csv").resolve(),
         route_metrics_csv=cfg.route_metrics_csv,
     )
 
@@ -67,7 +67,10 @@ def test_metrics_csv_written_if_processed_inputs_exist(tmp_path: Path):
 
     # Placeholders until later plans.
     assert df["vulnerability_score"].isna().all()
-    assert set(pd.to_numeric(df["leiden_community_id"], errors="coerce").unique()) == {-1}
+    # Leiden IDs should be assigned for every airport (>= 0 integer labels).
+    comm = pd.to_numeric(df["leiden_community_id"], errors="coerce")
+    assert comm.notna().all()
+    assert (comm.astype(int) >= 0).all()
 
     # Centralities should be finite (zeros allowed for isolated nodes).
     assert np.isfinite(pd.to_numeric(df["pagerank"], errors="coerce")).all()

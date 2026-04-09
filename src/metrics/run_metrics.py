@@ -6,11 +6,13 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import networkx as nx
 
 from metrics.centralities import compute_betweenness, compute_eigenvector, compute_pagerank
 from metrics.config import MetricsConfig, load_config
 from metrics.graph_builder import build_analysis_graph, load_edges
 from metrics.hub_bridge import add_hub_bridge_scores
+from metrics.leiden_communities import build_communities_frame, compute_leiden_communities
 from metrics.tables import assert_metr02_nodes_match_graph, load_nodes
 
 
@@ -27,14 +29,15 @@ _METRICS_COL_ORDER = [
 ]
 
 
-def build_metrics_frame(cfg: MetricsConfig) -> pd.DataFrame:
-    """Compute per-airport metrics (no communities yet; placeholders for later plans)."""
+def build_metrics_frame(cfg: MetricsConfig, *, g: "nx.DiGraph | None" = None) -> pd.DataFrame:
+    """Compute per-airport metrics (includes Leiden communities, METR-05)."""
     nodes = load_nodes(cfg)
     edges = load_edges(cfg)
 
-    g = build_analysis_graph(edges)
-    # Ensure the universe includes all airports in nodes.csv (including isolated nodes).
-    g.add_nodes_from(nodes["airport_id"].astype(int).tolist())
+    if g is None:
+        g = build_analysis_graph(edges)
+        # Ensure the universe includes all airports in nodes.csv (including isolated nodes).
+        g.add_nodes_from(nodes["airport_id"].astype(int).tolist())
 
     assert_metr02_nodes_match_graph(g, nodes)
 
@@ -80,8 +83,9 @@ def build_metrics_frame(cfg: MetricsConfig) -> pd.DataFrame:
     out = base.merge(scored[["airport_id", "hub_score", "bridge_score"]], on="airport_id", how="left")
 
     out["vulnerability_score"] = np.nan
-    # Placeholder until Leiden plan: sentinel -1 (integer) to distinguish from NaN.
-    out["leiden_community_id"] = -1
+
+    airport_to_comm = compute_leiden_communities(g)
+    out["leiden_community_id"] = out["airport_id"].map(airport_to_comm).astype(int)
 
     out = out[_METRICS_COL_ORDER].copy()
     out["snapshot_id"] = out["snapshot_id"].astype(str)
@@ -95,10 +99,34 @@ def write_metrics_csv(df: pd.DataFrame, path: Path) -> None:
     df.to_csv(path, index=False)
 
 
+def write_communities_csv(df: pd.DataFrame, path: Path) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    df.to_csv(path, index=False)
+
+
 def run(cfg_or_path: MetricsConfig | Path | str | None = None) -> Path:
     cfg = cfg_or_path if isinstance(cfg_or_path, MetricsConfig) else load_config(cfg_or_path)
-    df = build_metrics_frame(cfg)
+
+    # Rebuild graph once for both metrics and community rollups to guarantee ID alignment.
+    nodes = load_nodes(cfg)
+    edges = load_edges(cfg)
+    g = build_analysis_graph(edges)
+    g.add_nodes_from(nodes["airport_id"].astype(int).tolist())
+
+    # Metrics frame (pagerank, betweenness, hub/bridge, etc.)
+    df = build_metrics_frame(cfg, g=g)
     write_metrics_csv(df, cfg.metrics_csv)
+
+    # communities.csv rollup (spec §6.5 / §7.9)
+    airport_to_comm = dict(zip(df["airport_id"].astype(int), df["leiden_community_id"].astype(int)))
+    comm = build_communities_frame(
+        snapshot_id=cfg.snapshot_id,
+        g=g,
+        airport_to_comm=airport_to_comm,
+        metrics_df=df,
+        top_n=5,
+    )
+    write_communities_csv(comm, cfg.communities_csv)
     return cfg.metrics_csv
 
 
