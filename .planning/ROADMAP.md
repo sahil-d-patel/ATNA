@@ -52,7 +52,7 @@ Plans:
 
 Plans:
 
-- [ ] `02-01-PLAN.md` — Dependencies, config paths, NetworkX DiGraph from edges (METR-01)
+- [x] `02-01-PLAN.md` — Dependencies, config paths, NetworkX DiGraph from edges (METR-01)
 - [ ] `02-02-PLAN.md` — Percentile P(·), PageRank, betweenness, eigenvector (METR-03)
 - [ ] `02-03-PLAN.md` — Hub/Bridge scores, nodes↔graph consistency, metrics.csv placeholders (METR-02, METR-04)
 - [ ] `02-04-PLAN.md` — Leiden, communities.csv, leiden_community_id on metrics (METR-05)

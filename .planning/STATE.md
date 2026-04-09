@@ -5,11 +5,11 @@
 | Field | Value |
 |-------|--------|
 | **Phase** | 2 of 5 — Graph metrics & communities |
-| **Plan** | — (not started) |
-| **Status** | Phase 1 verified — Phase 2 next |
-| **Last activity** | 2026-04-09 — `/gsd-execute-phase 1` complete; verifier **passed** (`01-VERIFICATION.md`) |
+| **Plan** | 1 of 6 in phase (`02-01` complete) |
+| **Status** | In progress — Phase 2 |
+| **Last activity** | 2026-04-09 — Completed `02-01-PLAN.md` (METR-01 graph foundation) |
 
-**Progress (Phase 1 plans):** Complete — verified (`01-VERIFICATION.md`).
+**Progress (all plans with SUMMARY):** 5 of 10 executable plans with summaries — █████░░░░░ 50%
 
 ## Current milestone
 
@@ -21,8 +21,7 @@
 
 ## Last completed
 
-- 2026-04-09: **Phase 1** — All four plans executed; goal verified in `.planning/phases/01-repository-data-foundation/01-VERIFICATION.md` (status: passed).
-- 2026-04-08: **`01-04-PLAN.md`** — `build_nodes.py`, `run_pipeline.py`, `test_etl_contracts.py`, `validation_notes_mvp.md`, README ETL + validation links. Summary: `.planning/phases/01-repository-data-foundation/01-04-SUMMARY.md`.
+- 2026-04-09: **`02-01-PLAN.md`** — `src/metrics` package, deps, `MetricsConfig`, `graph_builder` (METR-01), `tests/test_metrics_graph.py`. Summary: `.planning/phases/02-graph-metrics-communities/02-01-SUMMARY.md`.
 
 ## Decisions (accumulated)
 
@@ -33,6 +32,7 @@
 | CFG-01 | Pipeline paths and MVP **`snapshot_id`** live in **`config/atna.yaml`**; loader resolves paths from repo root via `src/etl/config.py`. |
 | DATA-02/03 | **§6.1/§6.2 ETL** uses DOT `*_AIRPORT_ID` joins; **`pct_delayed`** = share with **`ARR_DELAY` > 15** min (non-null delays); **`analysis_weight`** = **`numpy.log1p(flight_count)`**; **`timezone`** from master **`UTC_LOCAL_TIME_VARIATION`**. |
 | DATA-04 | **`nodes.csv`** built from **`edges.csv`**: **`flights_*`** = sum of **`flight_count`**; **`strength_*`** = sum of **`analysis_weight`**; **`degree_*`** = counts of edge rows incident as origin/destination (one row per directed route). |
+| METR-01a | **`src/metrics/config.py`** resolves **`metrics.csv`**, **`communities.csv`**, **`route_metrics.csv`** under **`data/processed/{snapshot_id}/`** from repo root; graph uses **`analysis_weight`** only on **`DiGraph`** edges. |
 
 ## Blockers
 
@@ -45,13 +45,13 @@ None recorded.
 
 ## Next actions
 
-1. `/gsd-discuss-phase 2` — graph metrics & communities (context and approach).
-2. `/gsd-plan-phase 2` — executable plans when ready.
+1. Execute **`02-02-PLAN.md`** — centralities (METR-03) when ready.
+2. Continue Phase 2 plans per roadmap.
 
 ## Session continuity
 
 | Field | Value |
 |-------|--------|
 | **Last session** | 2026-04-09 |
-| **Stopped at** | Phase 1 verified; roadmap/state updated for Phase 2 |
+| **Stopped at** | Completed `02-01-PLAN.md` |
 | **Resume file** | None |
