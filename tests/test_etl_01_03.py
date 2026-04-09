@@ -11,6 +11,7 @@ import pytest
 
 from etl.build_airports import AIRPORTS_COLUMNS, build_airports_table
 from etl.build_edges import EDGES_COLUMNS, build_edges_table
+from etl.build_nodes import NODES_COLUMNS
 from etl.config import load_config, validate_paths
 from etl.load_raw import (
     load_on_time,
@@ -75,13 +76,17 @@ def test_written_csvs_roundtrip(cfg, tmp_path):
     """Write to temp dir to verify CSV writers without clobbering configured output."""
     from etl.build_airports import write_airports_csv
     from etl.build_edges import write_edges_csv
+    from etl.build_nodes import write_nodes_csv
 
     out = tmp_path / "out"
     c = replace(cfg, processed_dir=out.resolve())
     pa = write_airports_csv(c)
     pe = write_edges_csv(c)
-    assert pa.is_file() and pe.is_file()
+    pn = write_nodes_csv(c)
+    assert pa.is_file() and pe.is_file() and pn.is_file()
     a = pd.read_csv(pa)
     e = pd.read_csv(pe)
+    n = pd.read_csv(pn)
     assert list(a.columns) == AIRPORTS_COLUMNS
     assert list(e.columns) == EDGES_COLUMNS
+    assert list(n.columns) == NODES_COLUMNS
