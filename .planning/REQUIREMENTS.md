@@ -41,15 +41,15 @@
 
 ### Application — pages (Phase 4 spec)
 
-- [ ] **APP-01**: **Overview** page — totals, flight volume, top hubs, snapshot summary (spec §10.1).
-- [ ] **APP-02**: **Network map** — airports, routes, thickness by analysis weight, month + threshold filters (spec §10.2).
-- [ ] **APP-03**: **Airport explorer** — sortable table, hub/bridge/vulnerability, airport drilldown (spec §10.3).
-- [ ] **APP-04**: **Communities** — Leiden coloring, community stats, top hubs/bridges per community (spec §10.4).
-- [ ] **APP-05**: **Route explorer** — route table, criticality, cross-community indicator (spec §10.5).
-- [ ] **APP-06**: **Scenario editor** — remove airport/route, before/after cards, impact, health, ripple map, affected-airport table (spec §10.6).
-- [ ] **APP-07**: **Methodology** page — graph definitions, formulas, assumptions, limitations aligned to implementation (spec §10.7, §13.4).
-- [ ] **APP-08**: App **loads precomputed artifacts** only (no notebook-only state in the product path; spec §4.1, §12.3).
-- [ ] **APP-09**: Filters and tooltips behave without breaking charts (spec §11 Phase 4 tasks); **export** if time allows.
+- [x] **APP-01**: **Overview** page — totals, flight volume, top hubs, snapshot summary (spec §10.1).
+- [x] **APP-02**: **Network map** — airports, routes, thickness by analysis weight, month + threshold filters (spec §10.2).
+- [x] **APP-03**: **Airport explorer** — sortable table, hub/bridge/vulnerability, airport drilldown (spec §10.3).
+- [x] **APP-04**: **Communities** — Leiden coloring, community stats, top hubs/bridges per community (spec §10.4).
+- [x] **APP-05**: **Route explorer** — route table, criticality, cross-community indicator (spec §10.5).
+- [x] **APP-06**: **Scenario editor** — remove airport/route, before/after cards, impact, health, ripple map, affected-airport table (spec §10.6).
+- [x] **APP-07**: **Methodology** page — graph definitions, formulas, assumptions, limitations aligned to implementation (spec §10.7, §13.4).
+- [x] **APP-08**: App **loads precomputed artifacts** only (no notebook-only state in the product path; spec §4.1, §12.3).
+- [x] **APP-09**: Filters and tooltips behave without breaking charts (spec §11 Phase 4 tasks); **export** if time allows.
 
 ### QA and polish (Phase 5 spec)
 

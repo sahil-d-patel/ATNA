@@ -105,6 +105,16 @@ Plans:
 
 **Dependencies:** Phases 1–3 artifacts available under stable paths (`outputs/` or agreed layout).
 
+**Plans:** 5 plans
+
+Plans:
+
+- [x] `04-01-PLAN.md` — Streamlit core infra: canonical config/path resolver, cached artifact loaders, shared UI helpers
+- [x] `04-02-PLAN.md` — Explicit app router + seven page scaffolds
+- [x] `04-03-PLAN.md` — Implement Overview, Network map, and Airport explorer pages with robust filter guards
+- [x] `04-04-PLAN.md` — Implement Communities, Route explorer, and Methodology pages aligned to canonical formulas/artifacts
+- [x] `04-05-PLAN.md` — Scenario editor engine integration + full-page AppTest smoke coverage + human verification checkpoint
+
 ---
 
 ## Phase 5 — QA, demo polish, documentation

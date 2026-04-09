@@ -4,12 +4,12 @@
 
 | Field | Value |
 |-------|--------|
-| **Phase** | 4 of 5 — Streamlit application |
-| **Plan** | 4 of 5 in phase |
-| **Status** | In progress — Phase 4 |
-| **Last activity** | 2026-04-09 — Completed `04-04` Communities/Route Explorer/Methodology artifact-backed pages |
+| **Phase** | 5 of 5 — QA, demo polish, documentation |
+| **Plan** | 0 of 2 in phase (Phase 5 not started) |
+| **Status** | In progress — Phase 5 |
+| **Last activity** | 2026-04-09 — Completed Phase 4 Streamlit app (plans `04-01`..`04-05`); human checkpoint approved |
 
-**Progress (all plans with SUMMARY):** 16 of 19 executable plans with summaries — ████████░░ 84%
+**Progress (all plans with SUMMARY):** 19 of 19 executable plans with summaries — ██████████ 100%
 
 ## Current milestone
 
@@ -17,10 +17,11 @@
 
 ## Phase focus
 
-**Phase 4** — Streamlit application (see `.planning/ROADMAP.md`).
+**Phase 5** — QA, demo polish, documentation (see `.planning/ROADMAP.md`).
 
 ## Last completed
 
+- 2026-04-09: **`04-05-PLAN.md`** — implemented `src/app/scenario_service.py` (UI → `run_scenario` adapter), `src/app/pages/scenario_editor.py` (APP-06 form submit, before/after cards, affected airports), and `tests/test_streamlit_app_smoke.py` (AppTest coverage for all pages + empty-filter resilience); stabilized `streamlit run` import path in `src/app/streamlit_app.py` and AppTest timeouts. Human verification approved for local runs. Summary: `.planning/phases/04-streamlit-application/04-05-SUMMARY.md`.
 - 2026-04-09: **`04-03-PLAN.md`** — implemented APP-01 `overview.py` (artifact-backed KPIs + rankings), APP-02 `network_map.py` (month/threshold filters + empty-state-safe plotting), and APP-03 `airport_explorer.py` (sortable vulnerability-aware drilldown), plus canonical `load_nodes`/`load_edges` in `src/app/data_loader.py`. Summary: `.planning/phases/04-streamlit-application/04-03-SUMMARY.md`.
 - 2026-04-09: **`04-04-PLAN.md`** — implemented APP-04 `communities.py` (community summaries + ranked hub/bridge members), APP-05 `route_explorer.py` (criticality/cross-community filtering + ranking/chart), and APP-07 `methodology.py` (implementation-aligned formulas/limitations). Verified with headless Streamlit run and page smoke interactions. Summary: `.planning/phases/04-streamlit-application/04-04-SUMMARY.md`.
 - 2026-04-09: **`04-02-PLAN.md`** — implemented `src/app/streamlit_app.py` with explicit `st.Page` + `st.navigation` router (APP-01..APP-07) and created seven callable page scaffolds under `src/app/pages/`. Summary: `.planning/phases/04-streamlit-application/04-02-SUMMARY.md`.
@@ -62,6 +63,8 @@
 | APP-04a | APP-04 communities page now joins `communities.csv` + `metrics.csv` via `leiden_community_id`, exposing scoped summary cards and top hub/bridge rankings with empty-filter guards. |
 | APP-04b | APP-05 route explorer now consumes `route_metrics.csv` with threshold filters on `route_criticality_score`/`analysis_weight` and explicit `cross_community_flag` semantics (`100` vs `0`). |
 | APP-04c | APP-07 methodology is now implementation-aligned: formulas/limits are documented from locked spec and current code paths (including lambda=`0.35`, 2-hop ripple, and impact/network health equations). |
+| APP-05a | Phase 4 app layout stays **`src/app/pages/*`** with local **`streamlit run`**; no separate `services/` package split for MVP. |
+| APP-05b | AppTest smoke runs use an explicit **60s** script timeout so artifact-heavy pages complete reliably on cold starts. |
 
 ## Blockers
 
@@ -71,16 +74,17 @@ None recorded.
 
 - Domain ecosystem research was **skipped** by user choice; rely on locked spec for scope.
 - Phase 3 complete: scenario artifacts and METR-07 vulnerability integration are now locked and test-covered.
+- Phase 4 complete: seven-page Streamlit product, engine-backed scenario editor, and AppTest smoke suite; verification report at `.planning/phases/04-streamlit-application/04-VERIFICATION.md`.
 
 ## Next actions
 
-1. Execute Phase 4 Plan 05 (`04-05-PLAN.md`) to integrate scenario editor workflows and complete full app smoke coverage/checkpoint.
-2. Preserve APP-04/APP-05/APP-07 behavior contracts while finishing remaining Phase 4 pages.
+1. Start Phase 5: run spec §13 validation themes (QA-01) and tighten README demo reproducibility (QA-02).
+2. Optional: hosted deployment planning — out of MVP scope per `REQUIREMENTS.md` v2; local `streamlit run` remains canonical for v1.
 
 ## Session continuity
 
 | Field | Value |
 |-------|--------|
-| **Last session** | 2026-04-09 05:29Z |
-| **Stopped at** | Completed `04-04-PLAN.md` |
+| **Last session** | 2026-04-09 23:00Z |
+| **Stopped at** | Phase 4 verified complete; begin Phase 5 |
 | **Resume file** | None |
