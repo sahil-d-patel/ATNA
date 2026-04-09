@@ -5,11 +5,11 @@
 | Field | Value |
 |-------|--------|
 | **Phase** | 4 of 5 — Streamlit application |
-| **Plan** | 0 of TBD in phase (Phase 4 not started) |
+| **Plan** | 1 of 5 in phase |
 | **Status** | In progress — Phase 4 |
-| **Last activity** | 2026-04-09 — Completed `03-04` vulnerability batch integration + metrics pipeline wiring + METR-07 tests |
+| **Last activity** | 2026-04-09 — Completed `04-01` Streamlit app foundations (canonical app config, schema-guarded loaders, shared UI helpers) |
 
-**Progress (all plans with SUMMARY):** 13 of 14 executable plans with summaries — ██████████░ 93%
+**Progress (all plans with SUMMARY):** 14 of 19 executable plans with summaries — ███████░░░ 74%
 
 ## Current milestone
 
@@ -21,6 +21,7 @@
 
 ## Last completed
 
+- 2026-04-09: **`04-01-PLAN.md`** — implemented `src/app/config.py` (canonical snapshot/artifact resolver), `src/app/data_loader.py` (cached schema-validated loaders), and `src/app/ui/components.py` + `src/app/ui/formatters.py` (empty-state-safe UI primitives). Summary: `.planning/phases/04-streamlit-application/04-01-SUMMARY.md`.
 - 2026-04-09: **`03-04-PLAN.md`** — implemented `src/scenarios/vulnerability.py` (deterministic airport-removal batch vulnerability computation), integrated scoring into `src/metrics/run_metrics.py`, and added METR-07 merge-safety/reproducibility coverage in `tests/test_vulnerability_metrics_integration.py`. Summary: `.planning/phases/03-scenario-engine-vulnerability-integration/03-04-SUMMARY.md`.
 - 2026-04-09: **`03-03-PLAN.md`** — implemented `src/scenarios/engine.py` (deterministic scenario orchestration and IDs), `src/scenarios/artifacts.py` (schema-ordered CSV writers), `src/scenarios/run_scenarios.py` (deterministic mixed 3-scenario CLI), and `tests/test_scenario_engine_artifacts.py` (contracts + invariants + temp-config batch test). Summary: `.planning/phases/03-scenario-engine-vulnerability-integration/03-03-SUMMARY.md`.
 - 2026-04-09: **`03-02-PLAN.md`** — implemented `src/scenarios/ripple.py` (2-hop propagation, lambda discount, route endpoint seeding), `src/scenarios/scoring.py` (locked aggregate formulas + guards), and `tests/test_scenario_ripple_scoring.py` (deterministic invariants). Summary: `.planning/phases/03-scenario-engine-vulnerability-integration/03-02-SUMMARY.md`.
@@ -48,6 +49,9 @@
 | SCEN-03a | Aggregate scenario score cards are locked to spec formulas (`lcc_loss`, `reachability_loss`, `ripple_severity`, `impact_score`, `network_health`) with deterministic denominator/finite-value guards. |
 | SCEN-03b | Scenario execution IDs are deterministic (`scn_<sha256-prefix>`) from snapshot, scenario type, and canonical payload JSON to guarantee repeatability. |
 | SCEN-04a | METR-07 vulnerability is computed in canonical `run_metrics` using `0.60 * impact_pct + 0.40 * bridge_pct`, with impact from airport-removal scenario batch and one-to-one key merge on (`snapshot_id`, `airport_id`). |
+| APP-01a | App layer now has a canonical `AppConfig` contract in `src/app/config.py` resolving `metrics.csv`, `communities.csv`, `route_metrics.csv`, `scenarios.csv`, `scenario_exposure.csv`, plus baseline `edges.csv`/`nodes.csv` from `config/atna.yaml` + `snapshot_id`. |
+| APP-01b | Streamlit loaders in `src/app/data_loader.py` must fail fast on unreadable files/missing required columns and enforce `vulnerability_score` presence in `metrics.csv`. |
+| APP-01c | Page rendering should use shared helpers in `src/app/ui/components.py` to prevent empty-filter crashes with consistent "No rows for current filters." messaging. |
 
 ## Blockers
 
@@ -60,13 +64,13 @@ None recorded.
 
 ## Next actions
 
-1. Start Phase 4 Plan 01 (`04-01-PLAN.md`) for Streamlit application foundations.
-2. Consume `metrics.csv` vulnerability_score directly in Airport Explorer / scenario-facing UI.
+1. Execute Phase 4 Plan 02 (`04-02-PLAN.md`) to add explicit app router and seven page scaffolds.
+2. Reuse shared app config/loaders/helpers from `04-01` as the only data/UI foundation for Phase 4 pages.
 
 ## Session continuity
 
 | Field | Value |
 |-------|--------|
-| **Last session** | 2026-04-09 09:35Z |
-| **Stopped at** | Completed `03-04-PLAN.md` |
+| **Last session** | 2026-04-09 05:10Z |
+| **Stopped at** | Completed `04-01-PLAN.md` |
 | **Resume file** | None |
