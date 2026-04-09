@@ -2,6 +2,14 @@
 
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+
+# Pytest adds `src` via pytest.ini; `streamlit run src/app/streamlit_app.py` does not.
+_src_root = Path(__file__).resolve().parent.parent
+if str(_src_root) not in sys.path:
+    sys.path.insert(0, str(_src_root))
+
 import streamlit as st
 
 from app.pages.airport_explorer import render_airport_explorer_page
