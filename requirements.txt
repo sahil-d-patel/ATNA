@@ -1,0 +1,9 @@
+# Core pipeline & validation
+numpy>=1.26.0,<3
+pandas>=2.2.0,<3
+PyYAML>=6.0.1
+pytest>=8.0.0
+
+# Data acquisition (download scripts)
+playwright>=1.49.0
+requests>=2.31.0
