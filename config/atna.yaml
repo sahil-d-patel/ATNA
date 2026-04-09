@@ -16,3 +16,6 @@ output:
   metrics_csv: "data/processed/{snapshot_id}/metrics.csv"
   communities_csv: "data/processed/{snapshot_id}/communities.csv"
   route_metrics_csv: "data/processed/{snapshot_id}/route_metrics.csv"
+  # Phase 3 scenario artifacts (resolved from repo root; no alternate outputs roots)
+  scenarios_csv: "data/processed/{snapshot_id}/scenarios.csv"
+  scenario_exposure_csv: "data/processed/{snapshot_id}/scenario_exposure.csv"
