@@ -61,6 +61,8 @@ PYTHONPATH=src python -m etl.run_pipeline --config path/to/atna.yaml
 
 Outputs: `data/processed/{snapshot_id}/airports.csv`, `edges.csv`, and `nodes.csv` (spec §6.1–§6.3).
 
+**Validation / QA notes** — See [`data/reference/validation_notes_mvp.md`](data/reference/validation_notes_mvp.md) for snapshot metadata, exclusion rules, and known BTS quirks. Automated column and join checks live under `tests/test_etl_contracts.py`.
+
 ## Pipeline configuration
 
 Single checked-in YAML drives the MVP snapshot month and resolved paths for raw BTS files and processed outputs:
