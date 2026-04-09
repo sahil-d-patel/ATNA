@@ -5,11 +5,11 @@
 | Field | Value |
 |-------|--------|
 | **Phase** | 4 of 5 — Streamlit application |
-| **Plan** | 1 of 5 in phase |
+| **Plan** | 2 of 5 in phase |
 | **Status** | In progress — Phase 4 |
-| **Last activity** | 2026-04-09 — Completed `04-01` Streamlit app foundations (canonical app config, schema-guarded loaders, shared UI helpers) |
+| **Last activity** | 2026-04-09 — Completed `04-02` Streamlit explicit seven-page router and import-safe page scaffolds |
 
-**Progress (all plans with SUMMARY):** 14 of 19 executable plans with summaries — ███████░░░ 74%
+**Progress (all plans with SUMMARY):** 15 of 19 executable plans with summaries — ████████░░ 79%
 
 ## Current milestone
 
@@ -21,6 +21,7 @@
 
 ## Last completed
 
+- 2026-04-09: **`04-02-PLAN.md`** — implemented `src/app/streamlit_app.py` with explicit `st.Page` + `st.navigation` router (APP-01..APP-07) and created seven callable page scaffolds under `src/app/pages/`. Summary: `.planning/phases/04-streamlit-application/04-02-SUMMARY.md`.
 - 2026-04-09: **`04-01-PLAN.md`** — implemented `src/app/config.py` (canonical snapshot/artifact resolver), `src/app/data_loader.py` (cached schema-validated loaders), and `src/app/ui/components.py` + `src/app/ui/formatters.py` (empty-state-safe UI primitives). Summary: `.planning/phases/04-streamlit-application/04-01-SUMMARY.md`.
 - 2026-04-09: **`03-04-PLAN.md`** — implemented `src/scenarios/vulnerability.py` (deterministic airport-removal batch vulnerability computation), integrated scoring into `src/metrics/run_metrics.py`, and added METR-07 merge-safety/reproducibility coverage in `tests/test_vulnerability_metrics_integration.py`. Summary: `.planning/phases/03-scenario-engine-vulnerability-integration/03-04-SUMMARY.md`.
 - 2026-04-09: **`03-03-PLAN.md`** — implemented `src/scenarios/engine.py` (deterministic scenario orchestration and IDs), `src/scenarios/artifacts.py` (schema-ordered CSV writers), `src/scenarios/run_scenarios.py` (deterministic mixed 3-scenario CLI), and `tests/test_scenario_engine_artifacts.py` (contracts + invariants + temp-config batch test). Summary: `.planning/phases/03-scenario-engine-vulnerability-integration/03-03-SUMMARY.md`.
@@ -52,6 +53,8 @@
 | APP-01a | App layer now has a canonical `AppConfig` contract in `src/app/config.py` resolving `metrics.csv`, `communities.csv`, `route_metrics.csv`, `scenarios.csv`, `scenario_exposure.csv`, plus baseline `edges.csv`/`nodes.csv` from `config/atna.yaml` + `snapshot_id`. |
 | APP-01b | Streamlit loaders in `src/app/data_loader.py` must fail fast on unreadable files/missing required columns and enforce `vulnerability_score` presence in `metrics.csv`. |
 | APP-01c | Page rendering should use shared helpers in `src/app/ui/components.py` to prevent empty-filter crashes with consistent "No rows for current filters." messaging. |
+| APP-02a | Streamlit app routing is explicit in `src/app/streamlit_app.py` via `st.Page` + `st.navigation` with deterministic APP-01..APP-07 order and no implicit page auto-discovery. |
+| APP-02b | `src/app/pages/*` now defines one callable `render_*_page()` scaffold per route target so downstream page plans can implement logic incrementally without import churn. |
 
 ## Blockers
 
@@ -64,13 +67,13 @@ None recorded.
 
 ## Next actions
 
-1. Execute Phase 4 Plan 02 (`04-02-PLAN.md`) to add explicit app router and seven page scaffolds.
-2. Reuse shared app config/loaders/helpers from `04-01` as the only data/UI foundation for Phase 4 pages.
+1. Execute Phase 4 Plan 03 (`04-03-PLAN.md`) to implement Overview and Methodology pages on top of canonical loaders/helpers.
+2. Keep router/page contracts from `04-02` stable while replacing placeholders with artifact-backed page content.
 
 ## Session continuity
 
 | Field | Value |
 |-------|--------|
-| **Last session** | 2026-04-09 05:10Z |
-| **Stopped at** | Completed `04-01-PLAN.md` |
+| **Last session** | 2026-04-09 05:23Z |
+| **Stopped at** | Completed `04-02-PLAN.md` |
 | **Resume file** | None |
