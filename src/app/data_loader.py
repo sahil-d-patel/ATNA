@@ -24,6 +24,32 @@ except ModuleNotFoundError:  # pragma: no cover - fallback for non-UI test envir
 
 
 REQUIRED_COLUMNS: dict[str, set[str]] = {
+    "nodes": {
+        "snapshot_id",
+        "airport_id",
+        "flights_out",
+        "flights_in",
+        "strength_out",
+        "strength_in",
+        "strength_total",
+        "degree_out",
+        "degree_in",
+        "degree_total",
+    },
+    "edges": {
+        "snapshot_id",
+        "year",
+        "month",
+        "origin_id",
+        "destination_id",
+        "flight_count",
+        "passenger_count",
+        "seat_count",
+        "avg_arr_delay",
+        "pct_delayed",
+        "analysis_weight",
+        "route_key",
+    },
     "metrics": {
         "snapshot_id",
         "airport_id",
@@ -103,6 +129,18 @@ def _snapshot_filter(df: pd.DataFrame, snapshot_id: str) -> pd.DataFrame:
 
 
 @st.cache_data(show_spinner=False)
+def _load_nodes_cached(snapshot_id: str, csv_path: str) -> pd.DataFrame:
+    df = _read_csv_checked(Path(csv_path), "nodes", REQUIRED_COLUMNS["nodes"])
+    return _snapshot_filter(df, snapshot_id)
+
+
+@st.cache_data(show_spinner=False)
+def _load_edges_cached(snapshot_id: str, csv_path: str) -> pd.DataFrame:
+    df = _read_csv_checked(Path(csv_path), "edges", REQUIRED_COLUMNS["edges"])
+    return _snapshot_filter(df, snapshot_id)
+
+
+@st.cache_data(show_spinner=False)
 def _load_metrics_cached(snapshot_id: str, csv_path: str) -> pd.DataFrame:
     df = _read_csv_checked(Path(csv_path), "metrics", REQUIRED_COLUMNS["metrics"])
     return _snapshot_filter(df, snapshot_id)
@@ -142,6 +180,16 @@ def _resolve_config(config: AppConfig | None) -> AppConfig:
 def load_metrics(config: AppConfig | None = None) -> pd.DataFrame:
     cfg = _resolve_config(config)
     return _load_metrics_cached(cfg.snapshot_id, str(cfg.metrics_csv))
+
+
+def load_nodes(config: AppConfig | None = None) -> pd.DataFrame:
+    cfg = _resolve_config(config)
+    return _load_nodes_cached(cfg.snapshot_id, str(cfg.nodes_csv))
+
+
+def load_edges(config: AppConfig | None = None) -> pd.DataFrame:
+    cfg = _resolve_config(config)
+    return _load_edges_cached(cfg.snapshot_id, str(cfg.edges_csv))
 
 
 def load_communities(config: AppConfig | None = None) -> pd.DataFrame:
