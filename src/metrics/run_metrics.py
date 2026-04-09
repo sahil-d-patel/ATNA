@@ -13,6 +13,7 @@ from metrics.config import MetricsConfig, load_config
 from metrics.graph_builder import build_analysis_graph, load_edges
 from metrics.hub_bridge import add_hub_bridge_scores
 from metrics.leiden_communities import build_communities_frame, compute_leiden_communities
+from metrics.route_criticality import build_route_metrics_frame, write_route_metrics_csv
 from metrics.tables import assert_metr02_nodes_match_graph, load_nodes
 
 
@@ -127,6 +128,10 @@ def run(cfg_or_path: MetricsConfig | Path | str | None = None) -> Path:
         top_n=5,
     )
     write_communities_csv(comm, cfg.communities_csv)
+
+    # route_metrics.csv (spec §6.6 / §7.10) — uses same snapshot edges + Leiden IDs from metrics.
+    routes = build_route_metrics_frame(cfg, edges_df=edges, metrics_df=df)
+    write_route_metrics_csv(routes, cfg.route_metrics_csv)
     return cfg.metrics_csv
 
 
