@@ -65,8 +65,8 @@ def test_metrics_csv_written_if_processed_inputs_exist(tmp_path: Path):
     assert list(df.columns) == _METRICS_COL_ORDER
     assert df["snapshot_id"].astype(str).eq(cfg.snapshot_id).all()
 
-    # Placeholders until later plans.
-    assert df["vulnerability_score"].isna().all()
+    assert df["vulnerability_score"].notna().all()
+    assert np.isfinite(pd.to_numeric(df["vulnerability_score"], errors="coerce")).all()
     # Leiden IDs should be assigned for every airport (>= 0 integer labels).
     comm = pd.to_numeric(df["leiden_community_id"], errors="coerce")
     assert comm.notna().all()
