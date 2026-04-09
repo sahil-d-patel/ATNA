@@ -5,11 +5,11 @@
 | Field | Value |
 |-------|--------|
 | **Phase** | 1 of 5 — Repository & data foundation |
-| **Plan** | 01-01 complete; next **01-02** (`config/atna.yaml` + loader) |
+| **Plan** | 01-02 complete; next **01-03** (ETL airports/edges) |
 | **Status** | In progress — Phase 1 |
-| **Last activity** | 2026-04-08 — Completed `01-01-PLAN.md` |
+| **Last activity** | 2026-04-08 — Completed `01-02-PLAN.md` |
 
-**Progress (Phase 1 plans):** █░░░ 1/4 (25%)
+**Progress (Phase 1 plans):** ██░░ 2/4 (50%)
 
 ## Current milestone
 
@@ -21,7 +21,7 @@
 
 ## Last completed
 
-- 2026-04-08: **`01-01-PLAN.md`** — Repository skeleton, `requirements.txt` (pandas, PyYAML, pytest, numpy), README governance (§4.2 layout, REPO-02, DATA-01 raw policy, download vs ETL). Summary: `.planning/phases/01-repository-data-foundation/01-01-SUMMARY.md`.
+- 2026-04-08: **`01-02-PLAN.md`** — `config/atna.yaml`, `src/etl/config.py` (`load_config`, `validate_paths`), README pipeline configuration. Summary: `.planning/phases/01-repository-data-foundation/01-02-SUMMARY.md`.
 
 ## Decisions (accumulated)
 
@@ -29,6 +29,7 @@
 |----|----------|
 | REPO-02 | Canonical schema/metrics/UI contract is **`organization/ATNA_MVP_Technical_Spec_and_Workflow.md`** only; see `docs/specs/README.md`. |
 | DATA-01 | **`data/raw/`** must not be silently overwritten; use new paths/suffixes for refreshes. |
+| CFG-01 | Pipeline paths and MVP **`snapshot_id`** live in **`config/atna.yaml`**; loader resolves paths from repo root via `src/etl/config.py`. |
 
 ## Blockers
 
@@ -41,13 +42,13 @@ None recorded.
 
 ## Next actions
 
-1. Execute **`01-02-PLAN.md`** — single YAML config + loader.
-2. Continue Phase 1 wave: `01-03`, `01-04`.
+1. Execute **`01-03-PLAN.md`** — ETL `airports.csv` / `edges.csv`.
+2. Continue Phase 1: `01-04`.
 
 ## Session continuity
 
 | Field | Value |
 |-------|--------|
 | **Last session** | 2026-04-08 |
-| **Stopped at** | Completed `01-01-PLAN.md` |
+| **Stopped at** | Completed `01-02-PLAN.md` |
 | **Resume file** | None |
