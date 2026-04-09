@@ -5,9 +5,9 @@
 | Field | Value |
 |-------|--------|
 | **Phase** | 2 of 5 — Graph metrics & communities |
-| **Plan** | 6 of 6 in phase (`02-06` complete; human checkpoint pending) |
-| **Status** | In progress — Phase 2 (awaiting human map approval) |
-| **Last activity** | 2026-04-09 — Built `02-06` community map + validation notes; checkpoint pending |
+| **Plan** | 6 of 6 in phase (`02-06` complete; checkpoint approved) |
+| **Status** | In progress — Phase 2 (ready for phase verification) |
+| **Last activity** | 2026-04-09 — User approved `02-06` artifacts; keep validation outputs under `outputs/maps/` |
 
 **Progress (all plans with SUMMARY):** 9 of 10 executable plans with summaries — █████████░ 90%
 
@@ -21,7 +21,7 @@
 
 ## Last completed
 
-- 2026-04-09: **`02-06-PLAN.md`** — community map smoke script + `validation_notes_phase2.md`; map output at `outputs/maps/phase2_community_map_2025-12.png`. Summary: `.planning/phases/02-graph-metrics-communities/02-06-SUMMARY.md` (checkpoint pending).
+- 2026-04-09: **`02-06-PLAN.md`** — community map smoke script + `validation_notes_phase2.md`; outputs in `outputs/maps/` including map, legend, and validation metrics JSON. Summary: `.planning/phases/02-graph-metrics-communities/02-06-SUMMARY.md` (checkpoint approved).
 - 2026-04-09: **`02-05-PLAN.md`** — `route_criticality.py`, `tests/test_route_metrics.py`, route_metrics written by `run_metrics.py`. Summary: `.planning/phases/02-graph-metrics-communities/02-05-SUMMARY.md`.
 - 2026-04-09: **`02-04-PLAN.md`** — `leiden_communities.py` (METR-05), `run_metrics.py`, `tests/test_communities.py` + `tests/test_hub_bridge_metrics.py` (communities.csv + id alignment). Summary: `.planning/phases/02-graph-metrics-communities/02-04-SUMMARY.md`.
 - 2026-04-09: **`02-03-PLAN.md`** — `hub_bridge.py` (METR-04), `tables.py` (METR-02 QA), `run_metrics.py` + `tests/test_hub_bridge_metrics.py` (metrics.csv baseline). Summary: `.planning/phases/02-graph-metrics-communities/02-03-SUMMARY.md`.
@@ -50,8 +50,8 @@ None recorded.
 
 ## Next actions
 
-1. Human checkpoint: review `outputs/maps/phase2_community_map_2025-12.png` and reply **approved** or issues.
-2. After approval: run `/gsd/execute-phase 2` verification step (phase-level verifier) or proceed to Phase 3 planning.
+1. Run phase-level verification for Phase 2 (`/gsd/execute-phase 2` verify step).
+2. If passed, proceed to Phase 3 planning.
 
 ## Session continuity
 

@@ -13,7 +13,7 @@ provides:
   - data/reference/validation_notes_phase2.md
 
 completed: 2026-04-09
-human_checkpoint: pending
+human_checkpoint: approved
 ---
 
 # Phase 2 Plan 6: Community map smoke check Summary
@@ -26,12 +26,8 @@ Built a runnable community map smoke script and Phase 2 validation notes.
 - `outputs/maps/phase2_community_map_2025-12.png` — generated artifact for snapshot `2025-12`.
 - `data/reference/validation_notes_phase2.md` — versions + sanity narrative + reproducibility notes.
 
-## Human checkpoint (blocking)
+## Human checkpoint
 
-Please review:
-
-1. `outputs/maps/phase2_community_map_2025-12.png`
-2. `data/reference/validation_notes_phase2.md`
-
-Then respond with **approved** or list specific issues to fix.
+- Status: **approved** (user confirmed).
+- Artifacts remain under `outputs/maps/` by user preference.
 
