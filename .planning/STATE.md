@@ -5,11 +5,11 @@
 | Field | Value |
 |-------|--------|
 | **Phase** | 1 of 5 — Repository & data foundation |
-| **Plan** | 01-03 complete; next **01-04** (nodes, pipeline, validation notes) |
-| **Status** | In progress — Phase 1 |
-| **Last activity** | 2026-04-08 — Completed `01-03-PLAN.md` |
+| **Plan** | **01-04** complete; Phase 1 plans complete |
+| **Status** | Phase 1 complete — ready for Phase 2 |
+| **Last activity** | 2026-04-08 — Completed `01-04-PLAN.md` |
 
-**Progress (Phase 1 plans):** ███░ 3/4 (75%)
+**Progress (Phase 1 plans):** ████ 4/4 (100%)
 
 ## Current milestone
 
@@ -21,7 +21,7 @@
 
 ## Last completed
 
-- 2026-04-08: **`01-03-PLAN.md`** — `load_raw.py`, `build_airports.py`, `build_edges.py`, pytest contracts, §6.1/§6.2 CSVs under `data/processed/{snapshot_id}/`. Summary: `.planning/phases/01-repository-data-foundation/01-03-SUMMARY.md`.
+- 2026-04-08: **`01-04-PLAN.md`** — `build_nodes.py`, `run_pipeline.py`, `test_etl_contracts.py`, `validation_notes_mvp.md`, README ETL + validation links. Summary: `.planning/phases/01-repository-data-foundation/01-04-SUMMARY.md`.
 
 ## Decisions (accumulated)
 
@@ -31,6 +31,7 @@
 | DATA-01 | **`data/raw/`** must not be silently overwritten; use new paths/suffixes for refreshes. |
 | CFG-01 | Pipeline paths and MVP **`snapshot_id`** live in **`config/atna.yaml`**; loader resolves paths from repo root via `src/etl/config.py`. |
 | DATA-02/03 | **§6.1/§6.2 ETL** uses DOT `*_AIRPORT_ID` joins; **`pct_delayed`** = share with **`ARR_DELAY` > 15** min (non-null delays); **`analysis_weight`** = **`numpy.log1p(flight_count)`**; **`timezone`** from master **`UTC_LOCAL_TIME_VARIATION`**. |
+| DATA-04 | **`nodes.csv`** built from **`edges.csv`**: **`flights_*`** = sum of **`flight_count`**; **`strength_*`** = sum of **`analysis_weight`**; **`degree_*`** = counts of edge rows incident as origin/destination (one row per directed route). |
 
 ## Blockers
 
@@ -43,12 +44,12 @@ None recorded.
 
 ## Next actions
 
-1. Execute **`01-04-PLAN.md`** — `nodes.csv`, pipeline entrypoint, validation notes.
+1. Begin **Phase 2** — graph metrics & communities (see `.planning/ROADMAP.md`).
 
 ## Session continuity
 
 | Field | Value |
 |-------|--------|
 | **Last session** | 2026-04-08 |
-| **Stopped at** | Completed `01-03-PLAN.md` |
+| **Stopped at** | Completed `01-04-PLAN.md` |
 | **Resume file** | None |
