@@ -5,11 +5,11 @@
 | Field | Value |
 |-------|--------|
 | **Phase** | 3 of 5 — Scenario engine & vulnerability integration |
-| **Plan** | 1 of 4 in phase (`03-01` complete) |
+| **Plan** | 2 of 4 in phase (`03-02` complete) |
 | **Status** | In progress — Phase 3 |
-| **Last activity** | 2026-04-09 — Completed `03-01` scenario foundations (config contracts + immutable edits + tests) |
+| **Last activity** | 2026-04-09 — Completed `03-02` ripple propagation + aggregate scoring formulas + deterministic tests |
 
-**Progress (all plans with SUMMARY):** 10 of 14 executable plans with summaries — ███████░░░ 71%
+**Progress (all plans with SUMMARY):** 11 of 14 executable plans with summaries — ████████░░ 79%
 
 ## Current milestone
 
@@ -21,6 +21,7 @@
 
 ## Last completed
 
+- 2026-04-09: **`03-02-PLAN.md`** — implemented `src/scenarios/ripple.py` (2-hop propagation, lambda discount, route endpoint seeding), `src/scenarios/scoring.py` (locked aggregate formulas + guards), and `tests/test_scenario_ripple_scoring.py` (deterministic invariants). Summary: `.planning/phases/03-scenario-engine-vulnerability-integration/03-02-SUMMARY.md`.
 - 2026-04-09: **`03-01-PLAN.md`** — scenario config contracts, typed scenario models, immutable `remove_airport`/`remove_route`, and contract tests. Summary: `.planning/phases/03-scenario-engine-vulnerability-integration/03-01-SUMMARY.md`.
 - 2026-04-09: **`02-06-PLAN.md`** — community map smoke script + `validation_notes_phase2.md`; outputs in `outputs/maps/` including map, legend, and validation metrics JSON. Summary: `.planning/phases/02-graph-metrics-communities/02-06-SUMMARY.md` (checkpoint approved).
 - 2026-04-09: **`02-05-PLAN.md`** — `route_criticality.py`, `tests/test_route_metrics.py`, route_metrics written by `run_metrics.py`. Summary: `.planning/phases/02-graph-metrics-communities/02-05-SUMMARY.md`.
@@ -41,6 +42,8 @@
 | METR-01a | **`src/metrics/config.py`** resolves **`metrics.csv`**, **`communities.csv`**, **`route_metrics.csv`** under **`data/processed/{snapshot_id}/`** from repo root; graph uses **`analysis_weight`** only on **`DiGraph`** edges. |
 | SCEN-01a | Scenario artifacts are canonical under **`data/processed/{snapshot_id}/`** via **`output.scenarios_csv`** and **`output.scenario_exposure_csv`** in `config/atna.yaml`. |
 | SCEN-01b | Scenario graph edits use immutable primitives (`remove_airport`, `remove_route`) over copied **`nx.DiGraph`** with explicit validation failures for invalid payload/targets. |
+| SCEN-02a | Ripple propagation is locked to exactly two hops with **`lambda=0.35`**, using dependency weights **`W(i,j)=w(i,j)+w(j,i)`** and explicit hop provenance metadata. |
+| SCEN-03a | Aggregate scenario score cards are locked to spec formulas (`lcc_loss`, `reachability_loss`, `ripple_severity`, `impact_score`, `network_health`) with deterministic denominator/finite-value guards. |
 
 ## Blockers
 
@@ -53,13 +56,13 @@ None recorded.
 
 ## Next actions
 
-1. Execute `03-02-PLAN.md` (ripple propagation + scoring formulas).
-2. Preserve scenario artifact path and immutability contracts from `03-01`.
+1. Execute `03-03-PLAN.md` (scenario engine orchestration and artifact writing).
+2. Preserve locked ripple/scoring formulas from `03-02` without drift.
 
 ## Session continuity
 
 | Field | Value |
 |-------|--------|
-| **Last session** | 2026-04-09 |
-| **Stopped at** | Completed `03-01-PLAN.md` |
+| **Last session** | 2026-04-09 09:20Z |
+| **Stopped at** | Completed `03-02-PLAN.md` |
 | **Resume file** | None |
