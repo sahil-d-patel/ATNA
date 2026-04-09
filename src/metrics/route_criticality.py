@@ -13,6 +13,7 @@ import pandas as pd
 
 from metrics.config import MetricsConfig, load_config
 from metrics.graph_builder import load_edges
+from metrics.percentile import percentile_rank_0_100
 
 
 ROUTE_METRICS_COL_ORDER = [
@@ -80,7 +81,13 @@ def build_route_metrics_frame(
     cross = (o_comm.astype(int) != d_comm.astype(int)).astype(int) * 100
     out["cross_community_flag"] = cross.astype(int)
 
-    out["route_criticality_score"] = pd.NA
+    # Spec §7.10:
+    # RouteCriticality(i, j) = 0.70 * P(w(i,j)) + 0.30 * CrossCommunity(i,j),
+    # where CrossCommunity ∈ {0, 100}.
+    p_w = percentile_rank_0_100(out["analysis_weight"].astype(float))
+    out["route_criticality_score"] = 0.70 * p_w + 0.30 * out["cross_community_flag"].astype(
+        float
+    )
 
     out = out[ROUTE_METRICS_COL_ORDER].copy()
     return out
