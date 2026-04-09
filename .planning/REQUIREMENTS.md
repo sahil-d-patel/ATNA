@@ -29,15 +29,15 @@
 - [ ] **METR-04**: Compute **Hub Score** and **Bridge Score** exactly per spec §7.6–§7.7 (percentile scaling §7.5).
 - [ ] **METR-05**: Run **Leiden**; produce `metrics.csv` and `communities.csv` per spec §6.4–§6.5 (incl. community traffic, density, top hubs/bridges).
 - [ ] **METR-06**: Produce `route_metrics.csv` per spec §6.6 including **route criticality** and cross-community flag (spec §7.10).
-- [ ] **METR-07**: **Vulnerability score** on nodes per spec §7.8 (depends on scenario impact for removal—may be wired after scenario engine or precomputed via batch; MVP requires it in `metrics.csv` contract).
+- [x] **METR-07**: **Vulnerability score** on nodes per spec §7.8 (depends on scenario impact for removal—may be wired after scenario engine or precomputed via batch; MVP requires it in `metrics.csv` contract).
 
 ### Scenario engine (Phase 3 spec)
 
-- [ ] **SCEN-01**: User can define **airport removal** scenario: rebuild graph, compute summary metrics (spec §8.4, §9).
-- [ ] **SCEN-02**: User can define **route removal** scenario with endpoint seeding and 2-hop propagation (spec §8.5).
-- [ ] **SCEN-03**: Implement **LCC loss**, **reachability loss**, **ripple severity**, **Impact Score**, **Network Health** per spec §9 (locked formulas).
-- [ ] **SCEN-04**: Persist `scenarios.csv` and `scenario_exposure.csv` per spec §6.7–§6.8 (exposure score, hop level, rank).
-- [ ] **SCEN-05**: At least **three demo scenarios** run without failure; second hop weaker than first; health decreases when impact increases (spec §11 Phase 3 exit, §13.3).
+- [x] **SCEN-01**: User can define **airport removal** scenario: rebuild graph, compute summary metrics (spec §8.4, §9).
+- [x] **SCEN-02**: User can define **route removal** scenario with endpoint seeding and 2-hop propagation (spec §8.5).
+- [x] **SCEN-03**: Implement **LCC loss**, **reachability loss**, **ripple severity**, **Impact Score**, **Network Health** per spec §9 (locked formulas).
+- [x] **SCEN-04**: Persist `scenarios.csv` and `scenario_exposure.csv` per spec §6.7–§6.8 (exposure score, hop level, rank).
+- [x] **SCEN-05**: At least **three demo scenarios** run without failure; second hop weaker than first; health decreases when impact increases (spec §11 Phase 3 exit, §13.3).
 
 ### Application — pages (Phase 4 spec)
 

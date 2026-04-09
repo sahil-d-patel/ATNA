@@ -82,10 +82,10 @@ Plans:
 
 Plans:
 
-- [ ] `03-01-PLAN.md` — Scenario foundations: config contracts, typed payloads, immutable graph edits (SCEN-01/SCEN-02 base)
-- [ ] `03-02-PLAN.md` — Two-hop ripple and locked scoring formulas with deterministic tests (SCEN-02/SCEN-03)
-- [ ] `03-03-PLAN.md` — Scenario engine orchestration, scenario artifacts, and 3 demo scenario runner (SCEN-01/SCEN-04/SCEN-05)
-- [ ] `03-04-PLAN.md` — Vulnerability batch + `metrics.csv` integration for METR-07
+- [x] `03-01-PLAN.md` — Scenario foundations: config contracts, typed payloads, immutable graph edits (SCEN-01/SCEN-02 base)
+- [x] `03-02-PLAN.md` — Two-hop ripple and locked scoring formulas with deterministic tests (SCEN-02/SCEN-03)
+- [x] `03-03-PLAN.md` — Scenario engine orchestration, scenario artifacts, and 3 demo scenario runner (SCEN-01/SCEN-04/SCEN-05)
+- [x] `03-04-PLAN.md` — Vulnerability batch + `metrics.csv` integration for METR-07
 
 ---
 
