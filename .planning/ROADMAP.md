@@ -21,6 +21,15 @@
 
 **Dependencies:** None (first build slice).
 
+**Plans:** 4 plans
+
+Plans:
+
+- [x] `01-01-PLAN.md` — Repository skeleton, dependencies, README governance (REPO-01, REPO-02, DATA-01 policy)
+- [x] `01-02-PLAN.md` — Single `config/atna.yaml` + loader (pipeline configuration)
+- [x] `01-03-PLAN.md` — ETL: `airports.csv` and `edges.csv` (DATA-02, DATA-03)
+- [x] `01-04-PLAN.md` — `nodes.csv`, pipeline entrypoint, tests, validation notes (DATA-04, DATA-05, DATA-06)
+
 ---
 
 ## Phase 2 — Graph metrics & communities

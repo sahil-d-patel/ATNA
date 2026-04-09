@@ -9,17 +9,17 @@
 
 ### Repository and governance
 
-- [ ] **REPO-01**: Repository layout matches spec §4.2 (or documented equivalent) with `data/`, `outputs/`, `src/` package boundaries, `tests/`, `requirements.txt`, `README.md`.
-- [ ] **REPO-02**: Locked MVP technical spec is version-controlled and referenced as the schema/metrics/UI contract (no parallel undocumented schemas).
+- [x] **REPO-01**: Repository layout matches spec §4.2 (or documented equivalent) with `data/`, `outputs/`, `src/` package boundaries, `tests/`, `requirements.txt`, `README.md`.
+- [x] **REPO-02**: Locked MVP technical spec is version-controlled and referenced as the schema/metrics/UI contract (no parallel undocumented schemas).
 
 ### Data foundation (Phase 1 spec)
 
-- [ ] **DATA-01**: Raw BTS inputs stored unchanged under `data/raw/` (reporting carrier on-time, airport metadata, T-100 segment as required by spec §5).
-- [ ] **DATA-02**: ETL produces `airports.csv` with all required columns in spec §6.1.
-- [ ] **DATA-03**: ETL produces `edges.csv` per spec §6.2 including `snapshot_id` (`YYYY-MM`), `analysis_weight = log(1 + flight_count)`, and `route_key`.
-- [ ] **DATA-04**: ETL produces `nodes.csv` per spec §6.3 for each snapshot.
-- [ ] **DATA-05**: At least one monthly snapshot builds **end-to-end without manual fixes**; airport joins validate (spec §11 Phase 1 exit criteria).
-- [ ] **DATA-06**: Data dictionary / validation notes exist for the MVP slice (spec §11 Phase 1 deliverables).
+- [x] **DATA-01**: Raw BTS inputs stored unchanged under `data/raw/` (reporting carrier on-time, airport metadata, T-100 segment as required by spec §5).
+- [x] **DATA-02**: ETL produces `airports.csv` with all required columns in spec §6.1.
+- [x] **DATA-03**: ETL produces `edges.csv` per spec §6.2 including `snapshot_id` (`YYYY-MM`), `analysis_weight = log(1 + flight_count)`, and `route_key`.
+- [x] **DATA-04**: ETL produces `nodes.csv` per spec §6.3 for each snapshot.
+- [x] **DATA-05**: At least one monthly snapshot builds **end-to-end without manual fixes**; airport joins validate (spec §11 Phase 1 exit criteria).
+- [x] **DATA-06**: Data dictionary / validation notes exist for the MVP slice (spec §11 Phase 1 deliverables).
 
 ### Graph metrics (Phase 2 spec)
 
