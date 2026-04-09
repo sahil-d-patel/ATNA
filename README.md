@@ -32,7 +32,34 @@ Canonical column names, table shapes, metrics definitions, and UI behavior are d
 ## Download vs ETL
 
 1. **Download** — Populate `data/raw/` (automated script and/or manual steps per `data/reference/` docs). Provenance is tracked via manifests under `data/reference/`.
-2. **ETL** — Separate Python entrypoints under `src/etl/` (and `python -m` / `scripts/` as documented in later phases) read raw inputs and write interim and processed tables. There is no requirement for a single chained “download + transform” command in Phase 1.
+2. **ETL** — Python modules under `src/etl/` read raw inputs and write processed tables for the configured snapshot.
+
+### Run the full ETL (airports → edges → nodes)
+
+**Prerequisite:** Raw CSVs exist for the `snapshot_id` in [`config/atna.yaml`](config/atna.yaml) (same layout as the downloader). Use [`scripts/download/verify_downloads.py`](scripts/download/verify_downloads.py) to confirm files before ETL.
+
+From the repository root, with `src` on `PYTHONPATH`:
+
+**Windows (PowerShell):**
+
+```powershell
+$env:PYTHONPATH = "src"
+python -m etl.run_pipeline
+```
+
+**macOS / Linux:**
+
+```bash
+PYTHONPATH=src python -m etl.run_pipeline
+```
+
+Optional custom config:
+
+```bash
+PYTHONPATH=src python -m etl.run_pipeline --config path/to/atna.yaml
+```
+
+Outputs: `data/processed/{snapshot_id}/airports.csv`, `edges.csv`, and `nodes.csv` (spec §6.1–§6.3).
 
 ## Pipeline configuration
 
