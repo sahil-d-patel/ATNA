@@ -12,3 +12,7 @@ raw:
 
 output:
   processed_dir: "data/processed/{snapshot_id}/"
+  # Phase 2 metrics artifacts (resolved from repo root; {snapshot_id} from top-level snapshot_id)
+  metrics_csv: "data/processed/{snapshot_id}/metrics.csv"
+  communities_csv: "data/processed/{snapshot_id}/communities.csv"
+  route_metrics_csv: "data/processed/{snapshot_id}/route_metrics.csv"
