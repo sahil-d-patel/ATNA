@@ -34,6 +34,31 @@ Canonical column names, table shapes, metrics definitions, and UI behavior are d
 1. **Download** — Populate `data/raw/` (automated script and/or manual steps per `data/reference/` docs). Provenance is tracked via manifests under `data/reference/`.
 2. **ETL** — Separate Python entrypoints under `src/etl/` (and `python -m` / `scripts/` as documented in later phases) read raw inputs and write interim and processed tables. There is no requirement for a single chained “download + transform” command in Phase 1.
 
+## Pipeline configuration
+
+Single checked-in YAML drives the MVP snapshot month and resolved paths for raw BTS files and processed outputs:
+
+| Item | Location |
+|------|----------|
+| Config file | [`config/atna.yaml`](config/atna.yaml) |
+| Loader | [`src/etl/config.py`](src/etl/config.py) — `load_config()`, optional `validate_paths()` |
+
+**Bumping the MVP snapshot** — Edit `snapshot_id` in `config/atna.yaml` to the target `YYYY-MM` (must match the month you froze in `data/raw/`). Path templates in that file expand `{year}`, `{month}`, and `{snapshot_id}`; they follow the same layout as [`data/reference/download_manifest_2025.json`](data/reference/download_manifest_2025.json) and the downloader. After changing the month, re-fetch or copy raw CSVs for that month if needed, then confirm files exist before ETL.
+
+**Verify downloads match config** — From the repo root:
+
+```bash
+python scripts/download/verify_downloads.py --year 2025
+```
+
+Adjust `--year` if your manifest and `snapshot_id` use a different calendar year. The script checks counts and non-empty files; align its year with the raw paths implied by `snapshot_id`.
+
+**Load config in Python** (from repository root, with `src` on the path):
+
+```bash
+python -c "import sys; from pathlib import Path; sys.path.insert(0, str(Path('src').resolve())); from etl.config import load_config, validate_paths; c = load_config(); validate_paths(c); print(c.snapshot_id, c.processed_dir)"
+```
+
 ---
 
 ## Data Download
