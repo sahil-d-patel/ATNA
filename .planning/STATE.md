@@ -5,11 +5,11 @@
 | Field | Value |
 |-------|--------|
 | **Phase** | 2 of 5 — Graph metrics & communities |
-| **Plan** | 3 of 6 in phase (`02-03` complete) |
+| **Plan** | 4 of 6 in phase (`02-04` complete) |
 | **Status** | In progress — Phase 2 |
-| **Last activity** | 2026-04-09 — Completed `02-03-PLAN.md` (METR-04 hub/bridge, METR-02 QA, metrics.csv baseline) |
+| **Last activity** | 2026-04-09 — Completed `02-04-PLAN.md` (METR-05 Leiden communities + communities.csv) |
 
-**Progress (all plans with SUMMARY):** 6 of 10 executable plans with summaries — ██████░░░░ 60%
+**Progress (all plans with SUMMARY):** 7 of 10 executable plans with summaries — ███████░░░ 70%
 
 ## Current milestone
 
@@ -21,6 +21,7 @@
 
 ## Last completed
 
+- 2026-04-09: **`02-04-PLAN.md`** — `leiden_communities.py` (METR-05), `run_metrics.py`, `tests/test_communities.py` + `tests/test_hub_bridge_metrics.py` (communities.csv + id alignment). Summary: `.planning/phases/02-graph-metrics-communities/02-04-SUMMARY.md`.
 - 2026-04-09: **`02-03-PLAN.md`** — `hub_bridge.py` (METR-04), `tables.py` (METR-02 QA), `run_metrics.py` + `tests/test_hub_bridge_metrics.py` (metrics.csv baseline). Summary: `.planning/phases/02-graph-metrics-communities/02-03-SUMMARY.md`.
 - 2026-04-09: **`02-02-PLAN.md`** — `percentile.py`, `centralities.py` (METR-03), `tests/test_centralities.py`. Summary: `.planning/phases/02-graph-metrics-communities/02-02-SUMMARY.md`.
 - 2026-04-09: **`02-01-PLAN.md`** — `src/metrics` package, deps, `MetricsConfig`, `graph_builder` (METR-01), `tests/test_metrics_graph.py`. Summary: `.planning/phases/02-graph-metrics-communities/02-01-SUMMARY.md`.
@@ -47,7 +48,7 @@ None recorded.
 
 ## Next actions
 
-1. Execute **`02-03-PLAN.md`** — hub/bridge and partial metrics.csv.
+1. Execute **`02-05-PLAN.md`** — route_metrics.csv (METR-06) with cross-community flags.
 2. Continue Phase 2 plans per roadmap.
 
 ## Session continuity
@@ -55,5 +56,5 @@ None recorded.
 | Field | Value |
 |-------|--------|
 | **Last session** | 2026-04-09 |
-| **Stopped at** | Completed `02-03-PLAN.md` |
+| **Stopped at** | Completed `02-04-PLAN.md` |
 | **Resume file** | None |
