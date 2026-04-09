@@ -1,0 +1,256 @@
+{
+  "started_at": "2026-04-08T23:03:12.220243+00:00",
+  "finished_at": "2026-04-08T23:21:32.447998+00:00",
+  "records": [
+    {
+      "dataset": "master_coordinate",
+      "source_url": "https://transtats.bts.gov/DL_SelectFields.aspx?QO_fu146_anzr=N8vn6v10&gnoyr_VQ=FLL",
+      "year": null,
+      "month": null,
+      "target_path": "data/raw/airport_reference/master_coordinate_latest.csv",
+      "status": "ok",
+      "notes": "",
+      "saved_bytes": 4152098
+    },
+    {
+      "dataset": "on_time_reporting",
+      "source_url": "https://www.transtats.bts.gov/DL_SelectFields.aspx?QO_fu146_anzr=b0-gvzr&gnoyr_VQ=FGJ",
+      "year": "2025",
+      "month": "01",
+      "target_path": "data/raw/on_time/2025/on_time_2025_01.csv",
+      "status": "ok",
+      "notes": "",
+      "saved_bytes": 73291906
+    },
+    {
+      "dataset": "on_time_reporting",
+      "source_url": "https://www.transtats.bts.gov/DL_SelectFields.aspx?QO_fu146_anzr=b0-gvzr&gnoyr_VQ=FGJ",
+      "year": "2025",
+      "month": "02",
+      "target_path": "data/raw/on_time/2025/on_time_2025_02.csv",
+      "status": "ok",
+      "notes": "",
+      "saved_bytes": 68700829
+    },
+    {
+      "dataset": "on_time_reporting",
+      "source_url": "https://www.transtats.bts.gov/DL_SelectFields.aspx?QO_fu146_anzr=b0-gvzr&gnoyr_VQ=FGJ",
+      "year": "2025",
+      "month": "03",
+      "target_path": "data/raw/on_time/2025/on_time_2025_03.csv",
+      "status": "ok",
+      "notes": "",
+      "saved_bytes": 81801546
+    },
+    {
+      "dataset": "on_time_reporting",
+      "source_url": "https://www.transtats.bts.gov/DL_SelectFields.aspx?QO_fu146_anzr=b0-gvzr&gnoyr_VQ=FGJ",
+      "year": "2025",
+      "month": "04",
+      "target_path": "data/raw/on_time/2025/on_time_2025_04.csv",
+      "status": "ok",
+      "notes": "",
+      "saved_bytes": 79496961
+    },
+    {
+      "dataset": "on_time_reporting",
+      "source_url": "https://www.transtats.bts.gov/DL_SelectFields.aspx?QO_fu146_anzr=b0-gvzr&gnoyr_VQ=FGJ",
+      "year": "2025",
+      "month": "05",
+      "target_path": "data/raw/on_time/2025/on_time_2025_05.csv",
+      "status": "ok",
+      "notes": "",
+      "saved_bytes": 82392310
+    },
+    {
+      "dataset": "on_time_reporting",
+      "source_url": "https://www.transtats.bts.gov/DL_SelectFields.aspx?QO_fu146_anzr=b0-gvzr&gnoyr_VQ=FGJ",
+      "year": "2025",
+      "month": "06",
+      "target_path": "data/raw/on_time/2025/on_time_2025_06.csv",
+      "status": "ok",
+      "notes": "",
+      "saved_bytes": 83123210
+    },
+    {
+      "dataset": "on_time_reporting",
+      "source_url": "https://www.transtats.bts.gov/DL_SelectFields.aspx?QO_fu146_anzr=b0-gvzr&gnoyr_VQ=FGJ",
+      "year": "2025",
+      "month": "07",
+      "target_path": "data/raw/on_time/2025/on_time_2025_07.csv",
+      "status": "ok",
+      "notes": "",
+      "saved_bytes": 85748906
+    },
+    {
+      "dataset": "on_time_reporting",
+      "source_url": "https://www.transtats.bts.gov/DL_SelectFields.aspx?QO_fu146_anzr=b0-gvzr&gnoyr_VQ=FGJ",
+      "year": "2025",
+      "month": "08",
+      "target_path": "data/raw/on_time/2025/on_time_2025_08.csv",
+      "status": "ok",
+      "notes": "",
+      "saved_bytes": 81955162
+    },
+    {
+      "dataset": "on_time_reporting",
+      "source_url": "https://www.transtats.bts.gov/DL_SelectFields.aspx?QO_fu146_anzr=b0-gvzr&gnoyr_VQ=FGJ",
+      "year": "2025",
+      "month": "09",
+      "target_path": "data/raw/on_time/2025/on_time_2025_09.csv",
+      "status": "ok",
+      "notes": "",
+      "saved_bytes": 76622294
+    },
+    {
+      "dataset": "on_time_reporting",
+      "source_url": "https://www.transtats.bts.gov/DL_SelectFields.aspx?QO_fu146_anzr=b0-gvzr&gnoyr_VQ=FGJ",
+      "year": "2025",
+      "month": "10",
+      "target_path": "data/raw/on_time/2025/on_time_2025_10.csv",
+      "status": "ok",
+      "notes": "",
+      "saved_bytes": 83695306
+    },
+    {
+      "dataset": "on_time_reporting",
+      "source_url": "https://www.transtats.bts.gov/DL_SelectFields.aspx?QO_fu146_anzr=b0-gvzr&gnoyr_VQ=FGJ",
+      "year": "2025",
+      "month": "11",
+      "target_path": "data/raw/on_time/2025/on_time_2025_11.csv",
+      "status": "ok",
+      "notes": "",
+      "saved_bytes": 78681830
+    },
+    {
+      "dataset": "on_time_reporting",
+      "source_url": "https://www.transtats.bts.gov/DL_SelectFields.aspx?QO_fu146_anzr=b0-gvzr&gnoyr_VQ=FGJ",
+      "year": "2025",
+      "month": "12",
+      "target_path": "data/raw/on_time/2025/on_time_2025_12.csv",
+      "status": "ok",
+      "notes": "",
+      "saved_bytes": 80337953
+    },
+    {
+      "dataset": "t100_segment",
+      "source_url": "https://www.transtats.bts.gov/DL_SelectFields.asp?QO_fu146_anzr=&gnoyr_VQ=FMG",
+      "year": "2025",
+      "month": "01",
+      "target_path": "data/raw/t100_segment/2025/t100_2025_01.csv",
+      "status": "ok",
+      "notes": "",
+      "saved_bytes": 4762539
+    },
+    {
+      "dataset": "t100_segment",
+      "source_url": "https://www.transtats.bts.gov/DL_SelectFields.asp?QO_fu146_anzr=&gnoyr_VQ=FMG",
+      "year": "2025",
+      "month": "02",
+      "target_path": "data/raw/t100_segment/2025/t100_2025_02.csv",
+      "status": "ok",
+      "notes": "",
+      "saved_bytes": 4607542
+    },
+    {
+      "dataset": "t100_segment",
+      "source_url": "https://www.transtats.bts.gov/DL_SelectFields.asp?QO_fu146_anzr=&gnoyr_VQ=FMG",
+      "year": "2025",
+      "month": "03",
+      "target_path": "data/raw/t100_segment/2025/t100_2025_03.csv",
+      "status": "ok",
+      "notes": "",
+      "saved_bytes": 5064074
+    },
+    {
+      "dataset": "t100_segment",
+      "source_url": "https://www.transtats.bts.gov/DL_SelectFields.asp?QO_fu146_anzr=&gnoyr_VQ=FMG",
+      "year": "2025",
+      "month": "04",
+      "target_path": "data/raw/t100_segment/2025/t100_2025_04.csv",
+      "status": "ok",
+      "notes": "",
+      "saved_bytes": 4821603
+    },
+    {
+      "dataset": "t100_segment",
+      "source_url": "https://www.transtats.bts.gov/DL_SelectFields.asp?QO_fu146_anzr=&gnoyr_VQ=FMG",
+      "year": "2025",
+      "month": "05",
+      "target_path": "data/raw/t100_segment/2025/t100_2025_05.csv",
+      "status": "ok",
+      "notes": "",
+      "saved_bytes": 4999222
+    },
+    {
+      "dataset": "t100_segment",
+      "source_url": "https://www.transtats.bts.gov/DL_SelectFields.asp?QO_fu146_anzr=&gnoyr_VQ=FMG",
+      "year": "2025",
+      "month": "06",
+      "target_path": "data/raw/t100_segment/2025/t100_2025_06.csv",
+      "status": "ok",
+      "notes": "",
+      "saved_bytes": 5252649
+    },
+    {
+      "dataset": "t100_segment",
+      "source_url": "https://www.transtats.bts.gov/DL_SelectFields.asp?QO_fu146_anzr=&gnoyr_VQ=FMG",
+      "year": "2025",
+      "month": "07",
+      "target_path": "data/raw/t100_segment/2025/t100_2025_07.csv",
+      "status": "ok",
+      "notes": "",
+      "saved_bytes": 5193869
+    },
+    {
+      "dataset": "t100_segment",
+      "source_url": "https://www.transtats.bts.gov/DL_SelectFields.asp?QO_fu146_anzr=&gnoyr_VQ=FMG",
+      "year": "2025",
+      "month": "08",
+      "target_path": "data/raw/t100_segment/2025/t100_2025_08.csv",
+      "status": "ok",
+      "notes": "",
+      "saved_bytes": 5214669
+    },
+    {
+      "dataset": "t100_segment",
+      "source_url": "https://www.transtats.bts.gov/DL_SelectFields.asp?QO_fu146_anzr=&gnoyr_VQ=FMG",
+      "year": "2025",
+      "month": "09",
+      "target_path": "data/raw/t100_segment/2025/t100_2025_09.csv",
+      "status": "ok",
+      "notes": "",
+      "saved_bytes": 4745914
+    },
+    {
+      "dataset": "t100_segment",
+      "source_url": "https://www.transtats.bts.gov/DL_SelectFields.asp?QO_fu146_anzr=&gnoyr_VQ=FMG",
+      "year": "2025",
+      "month": "10",
+      "target_path": "data/raw/t100_segment/2025/t100_2025_10.csv",
+      "status": "ok",
+      "notes": "",
+      "saved_bytes": 5034754
+    },
+    {
+      "dataset": "t100_segment",
+      "source_url": "https://www.transtats.bts.gov/DL_SelectFields.asp?QO_fu146_anzr=&gnoyr_VQ=FMG",
+      "year": "2025",
+      "month": "11",
+      "target_path": "data/raw/t100_segment/2025/t100_2025_11.csv",
+      "status": "ok",
+      "notes": "",
+      "saved_bytes": 5075216
+    },
+    {
+      "dataset": "t100_segment",
+      "source_url": "https://www.transtats.bts.gov/DL_SelectFields.asp?QO_fu146_anzr=&gnoyr_VQ=FMG",
+      "year": "2025",
+      "month": "12",
+      "target_path": "data/raw/t100_segment/2025/t100_2025_12.csv",
+      "status": "ok",
+      "notes": "",
+      "saved_bytes": 5095576
+    }
+  ]
+}
