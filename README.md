@@ -63,6 +63,61 @@ Outputs: `data/processed/{snapshot_id}/airports.csv`, `edges.csv`, and `nodes.cs
 
 **Validation / QA notes** — See [`data/reference/validation_notes_mvp.md`](data/reference/validation_notes_mvp.md) for snapshot metadata, exclusion rules, and known BTS quirks. Automated column and join checks live under `tests/test_etl_contracts.py`.
 
+## Metrics and scenario artifacts
+
+After ETL, `data/processed/{snapshot_id}/` contains `airports.csv`, `edges.csv`, and `nodes.csv`. Build graph metrics and scenario outputs with `snapshot_id` from [`config/atna.yaml`](config/atna.yaml) (paths under `output.*` in that file).
+
+**Windows (PowerShell):**
+
+```powershell
+$env:PYTHONPATH = "src"
+python -m metrics.run_metrics
+python -m scenarios.run_scenarios
+```
+
+**macOS / Linux:**
+
+```bash
+PYTHONPATH=src python -m metrics.run_metrics
+PYTHONPATH=src python -m scenarios.run_scenarios
+```
+
+Writes (per config): `metrics.csv`, `communities.csv`, `route_metrics.csv`, `scenarios.csv`, and `scenario_exposure.csv` under `data/processed/{snapshot_id}/`.
+
+## Run the Streamlit app
+
+From the repository root, with dependencies installed (`pip install -r requirements.txt`) and artifacts present for the configured `snapshot_id`:
+
+**Windows (PowerShell):**
+
+```powershell
+$env:PYTHONPATH = "src"
+streamlit run src/app/streamlit_app.py
+```
+
+**macOS / Linux:**
+
+```bash
+PYTHONPATH=src streamlit run src/app/streamlit_app.py
+```
+
+Headless regression coverage for all seven pages: `pytest tests/test_streamlit_app_smoke.py -q` (uses Streamlit `AppTest`; allow ~60s per run on cold start). Phase 5 checklist and outcomes: [`data/reference/validation_checklist_phase5.md`](data/reference/validation_checklist_phase5.md).
+
+### Demo sequence (spec §14)
+
+Presenter rehearsal order (locked spec **§14 — Recommended final demo sequence**):
+
+1. Open a monthly snapshot (Overview / app default for `snapshot_id`).
+2. Show major hubs on the network map.
+3. Switch to Airport Explorer and rank by Hub Score.
+4. Rank by Bridge Score and explain the difference.
+5. Open Communities and show Leiden partitioning.
+6. Open Route Explorer and highlight cross-community routes.
+7. Remove a major airport in the Scenario Editor.
+8. Show ripple spread, impact score, and network health drop.
+9. Remove a route and compare the outcome.
+10. Close with the structural takeaway.
+
 ## Pipeline configuration
 
 Single checked-in YAML drives the MVP snapshot month and resolved paths for raw BTS files and processed outputs:
