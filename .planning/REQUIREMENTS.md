@@ -53,8 +53,8 @@
 
 ### QA and polish (Phase 5 spec)
 
-- [ ] **QA-01**: Execute validation themes in spec §13 (data, metrics, scenario, UI) with noted outcomes or fixes.
-- [ ] **QA-02**: **Stable demo build** — full narrative demo start-to-finish (spec §14); README documents how to reproduce pipeline + run app.
+- [x] **QA-01**: Execute validation themes in spec §13 (data, metrics, scenario, UI) with noted outcomes or fixes.
+- [x] **QA-02**: **Stable demo build** — full narrative demo start-to-finish (spec §14); README documents how to reproduce pipeline + run app.
 
 ---
 

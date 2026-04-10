@@ -5,11 +5,11 @@
 | Field | Value |
 |-------|--------|
 | **Phase** | 5 of 5 — QA, demo polish, documentation |
-| **Plan** | 0 of 2 in phase (Phase 5 not started) |
-| **Status** | In progress — Phase 5 |
-| **Last activity** | 2026-04-09 — Completed Phase 4 Streamlit app (plans `04-01`..`04-05`); human checkpoint approved |
+| **Plan** | 2 of 2 in phase (Phase 5 complete) |
+| **Status** | Complete — MVP milestone (Phase 5 verified) |
+| **Last activity** | 2026-04-09 — Phase 5 QA-01 checklist + QA-02 README/§14 demo; verification passed |
 
-**Progress (all plans with SUMMARY):** 19 of 19 executable plans with summaries — ██████████ 100%
+**Progress (all plans with SUMMARY):** 21 of 21 executable plans with summaries — ██████████ 100%
 
 ## Current milestone
 
@@ -17,10 +17,12 @@
 
 ## Phase focus
 
-**Phase 5** — QA, demo polish, documentation (see `.planning/ROADMAP.md`).
+**MVP closed** — All five execution phases complete; optional audit / hosted deployment planning out of v1 scope.
 
 ## Last completed
 
+- 2026-04-09: **`05-02-PLAN.md`** — README: metrics (`metrics.run_metrics`), scenarios (`scenarios.run_scenarios`), Streamlit launch, and ten-step spec §14 demo sequence; cross-links to `validation_checklist_phase5.md`. Summary: `.planning/phases/05-qa-demo-polish-documentation/05-02-SUMMARY.md`.
+- 2026-04-09: **`05-01-PLAN.md`** — `data/reference/validation_checklist_phase5.md` covering spec §13.1–§13.4 with pytest evidence and human rows for subjective items. Summary: `.planning/phases/05-qa-demo-polish-documentation/05-01-SUMMARY.md`.
 - 2026-04-09: **`04-05-PLAN.md`** — implemented `src/app/scenario_service.py` (UI → `run_scenario` adapter), `src/app/pages/scenario_editor.py` (APP-06 form submit, before/after cards, affected airports), and `tests/test_streamlit_app_smoke.py` (AppTest coverage for all pages + empty-filter resilience); stabilized `streamlit run` import path in `src/app/streamlit_app.py` and AppTest timeouts. Human verification approved for local runs. Summary: `.planning/phases/04-streamlit-application/04-05-SUMMARY.md`.
 - 2026-04-09: **`04-03-PLAN.md`** — implemented APP-01 `overview.py` (artifact-backed KPIs + rankings), APP-02 `network_map.py` (month/threshold filters + empty-state-safe plotting), and APP-03 `airport_explorer.py` (sortable vulnerability-aware drilldown), plus canonical `load_nodes`/`load_edges` in `src/app/data_loader.py`. Summary: `.planning/phases/04-streamlit-application/04-03-SUMMARY.md`.
 - 2026-04-09: **`04-04-PLAN.md`** — implemented APP-04 `communities.py` (community summaries + ranked hub/bridge members), APP-05 `route_explorer.py` (criticality/cross-community filtering + ranking/chart), and APP-07 `methodology.py` (implementation-aligned formulas/limitations). Verified with headless Streamlit run and page smoke interactions. Summary: `.planning/phases/04-streamlit-application/04-04-SUMMARY.md`.
@@ -75,16 +77,17 @@ None recorded.
 - Domain ecosystem research was **skipped** by user choice; rely on locked spec for scope.
 - Phase 3 complete: scenario artifacts and METR-07 vulnerability integration are now locked and test-covered.
 - Phase 4 complete: seven-page Streamlit product, engine-backed scenario editor, and AppTest smoke suite; verification report at `.planning/phases/04-streamlit-application/04-VERIFICATION.md`.
+- Phase 5 complete: §13 checklist artifact + README reproduce/demo path; verification at `.planning/phases/05-qa-demo-polish-documentation/05-VERIFICATION.md`.
 
 ## Next actions
 
-1. Start Phase 5: run spec §13 validation themes (QA-01) and tighten README demo reproducibility (QA-02).
+1. Optional: `/gsd-audit-milestone` or manual acceptance before external demo.
 2. Optional: hosted deployment planning — out of MVP scope per `REQUIREMENTS.md` v2; local `streamlit run` remains canonical for v1.
 
 ## Session continuity
 
 | Field | Value |
 |-------|--------|
-| **Last session** | 2026-04-09 23:00Z |
-| **Stopped at** | Phase 4 verified complete; begin Phase 5 |
+| **Last session** | 2026-04-09 23:45Z |
+| **Stopped at** | Phase 5 verified; MVP roadmap complete |
 | **Resume file** | None |

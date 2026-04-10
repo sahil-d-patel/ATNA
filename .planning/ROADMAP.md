@@ -133,6 +133,13 @@ Plans:
 
 **Dependencies:** Phase 4 complete.
 
+**Plans:** 2 plans
+
+Plans:
+
+- [x] `05-01-PLAN.md` — Spec §13 validation checklist with evidence matrix (QA-01)
+- [x] `05-02-PLAN.md` — README reproduce path, metrics/scenarios/app commands, §14 demo rehearsal (QA-02)
+
 ---
 
 ## Coverage checklist
