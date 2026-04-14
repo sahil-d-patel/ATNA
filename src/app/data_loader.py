@@ -8,6 +8,8 @@ import pandas as pd
 
 from app.config import AppConfig, load_app_config
 
+_MASTER_AIRPORT_REL = "data/raw/airport_reference/master_coordinate_latest.csv"
+
 try:
     import streamlit as st
 except ModuleNotFoundError:  # pragma: no cover - fallback for non-UI test environments
@@ -210,3 +212,40 @@ def load_scenarios(config: AppConfig | None = None) -> pd.DataFrame:
 def load_scenario_exposure(config: AppConfig | None = None) -> pd.DataFrame:
     cfg = _resolve_config(config)
     return _load_scenario_exposure_cached(cfg.snapshot_id, str(cfg.scenario_exposure_csv))
+
+
+@st.cache_data(show_spinner=False)
+def _load_airports_geo_cached(snapshot_id: str, master_csv: str, metrics_csv: str) -> pd.DataFrame:
+    master_path = Path(master_csv)
+    if not master_path.is_file():
+        raise ValueError(f"Master airport reference not found: {master_path}")
+    master = pd.read_csv(master_path, low_memory=False)
+    master = master.loc[
+        master["AIRPORT_IS_LATEST"] == 1,
+        ["AIRPORT_ID", "AIRPORT", "DISPLAY_AIRPORT_NAME", "LATITUDE", "LONGITUDE"],
+    ].copy()
+    master = master.rename(
+        columns={
+            "AIRPORT_ID": "airport_id",
+            "AIRPORT": "iata_code",
+            "DISPLAY_AIRPORT_NAME": "airport_name",
+            "LATITUDE": "latitude",
+            "LONGITUDE": "longitude",
+        }
+    )
+    metrics = _read_csv_checked(Path(metrics_csv), "metrics", REQUIRED_COLUMNS["metrics"])
+    metrics = _snapshot_filter(metrics, snapshot_id)
+    merged = metrics.merge(master, on="airport_id", how="left")
+    return merged
+
+
+def load_airports_geo(config: AppConfig | None = None) -> pd.DataFrame:
+    """Return metrics joined with lat/lon from the master airport reference file.
+
+    Each row is one airport in the current snapshot, with all metrics columns plus
+    ``latitude``, ``longitude``, ``iata_code``, and ``airport_name``.
+    Rows with no coordinate match will have NaN lat/lon.
+    """
+    cfg = _resolve_config(config)
+    master_csv = str(cfg.repo_root / _MASTER_AIRPORT_REL)
+    return _load_airports_geo_cached(cfg.snapshot_id, master_csv, str(cfg.metrics_csv))
