@@ -11,6 +11,8 @@
 
 **Progress (all plans with SUMMARY):** 21 of 21 executable plans with summaries — ██████████ 100%
 
+**Next Phase:** Phase 6 — Add in a phase that does this (`.planning/phases/06-add-in-a-phase-that-does-this/`)
+
 ## Current milestone
 
 **MVP** — Air Traffic Network Analysis (locked spec v1.0).
@@ -67,6 +69,12 @@
 | APP-04c | APP-07 methodology is now implementation-aligned: formulas/limits are documented from locked spec and current code paths (including lambda=`0.35`, 2-hop ripple, and impact/network health equations). |
 | APP-05a | Phase 4 app layout stays **`src/app/pages/*`** with local **`streamlit run`**; no separate `services/` package split for MVP. |
 | APP-05b | AppTest smoke runs use an explicit **60s** script timeout so artifact-heavy pages complete reliably on cold starts. |
+
+## Accumulated context
+
+### Roadmap Evolution
+
+- Phase 6 added: Add in a phase that does this
 
 ## Blockers
 

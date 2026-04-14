@@ -142,6 +142,20 @@ Plans:
 
 ---
 
+## Phase 6 — Add in a phase that does this
+
+**Goal:** [To be planned]
+**Depends on:** Phase 5
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 6 to break down)
+
+**Details:**
+[To be added during planning]
+
+---
+
 ## Coverage checklist
 
 | Phase | Requirement count |
