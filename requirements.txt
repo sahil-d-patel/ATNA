@@ -1,0 +1,14 @@
+# Core pipeline & validation
+numpy>=1.26.0,<3
+pandas>=2.2.0,<3
+PyYAML>=6.0.1
+pytest>=8.0.0
+
+# Graph metrics & communities (Phase 2)
+networkx>=3.2,<4
+python-igraph>=0.11,<1
+leidenalg>=0.10,<1
+
+# Data acquisition (download scripts)
+playwright>=1.49.0
+requests>=2.31.0
