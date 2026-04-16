@@ -1,0 +1,21 @@
+# ATNA pipeline configuration — canonical MVP snapshot and raw file locations.
+# snapshot_id: frozen BTS month (YYYY-MM) for ETL; bump when re-pinning raw inputs (see README).
+
+snapshot_id: "2025-12"
+
+raw:
+  # Templates use {year} and {month} from snapshot_id (month is zero-padded, e.g. 01, 12).
+  # Matches data/reference/download_manifest_2025.json and data/raw/ layout from download_bts_data.py.
+  on_time_glob: "data/raw/on_time/{year}/on_time_{year}_{month}.csv"
+  t100_glob: "data/raw/t100_segment/{year}/t100_{year}_{month}.csv"
+  master_airport_file: "data/raw/airport_reference/master_coordinate_latest.csv"
+
+output:
+  processed_dir: "data/processed/{snapshot_id}/"
+  # Phase 2 metrics artifacts (resolved from repo root; {snapshot_id} from top-level snapshot_id)
+  metrics_csv: "data/processed/{snapshot_id}/metrics.csv"
+  communities_csv: "data/processed/{snapshot_id}/communities.csv"
+  route_metrics_csv: "data/processed/{snapshot_id}/route_metrics.csv"
+  # Phase 3 scenario artifacts (resolved from repo root; no alternate outputs roots)
+  scenarios_csv: "data/processed/{snapshot_id}/scenarios.csv"
+  scenario_exposure_csv: "data/processed/{snapshot_id}/scenario_exposure.csv"
