@@ -8,7 +8,12 @@ import numpy as np
 import pandas as pd
 
 from etl.config import AtnaConfig
-from etl.load_raw import load_on_time_us_domestic, load_t100_us_domestic, snapshot_year_month
+from etl.load_raw import (
+    load_master,
+    load_on_time_us_domestic,
+    load_t100_us_domestic,
+    snapshot_year_month,
+)
 
 EDGES_COLUMNS = [
     "snapshot_id",
@@ -50,18 +55,26 @@ def _aggregate_on_time_routes(completed: pd.DataFrame) -> pd.DataFrame:
 
 
 def _aggregate_t100_routes(t100_us: pd.DataFrame) -> pd.DataFrame:
-    """Sum passengers, seats, and departures performed per directed route."""
+    """Sum passengers and seats per directed route."""
     g = t100_us.groupby(["ORIGIN_AIRPORT_ID", "DEST_AIRPORT_ID"], as_index=False).agg(
         passenger_count=("PASSENGERS", "sum"),
         seat_count=("SEATS", "sum"),
-        departures_performed=("DEPARTURES_PERFORMED", "sum"),
     )
     return g
 
 
-def build_edges_table(cfg: AtnaConfig) -> pd.DataFrame:
-    """Directed edges for the snapshot: on-time ops + T-100 passenger/seat totals."""
-    on_time_us = load_on_time_us_domestic(cfg)
+def build_edges_table(cfg: AtnaConfig, master: pd.DataFrame | None = None) -> pd.DataFrame:
+    """Directed edges for the snapshot: on-time ops + T-100 passenger/seat totals.
+
+    Args:
+        cfg: Resolved pipeline config.
+        master: Pre-loaded master coordinate table; loaded internally when ``None``.
+            Callers building multiple tables per run can pass a shared load to
+            avoid re-parsing the master CSV.
+    """
+    if master is None:
+        master = load_master(cfg)
+    on_time_us = load_on_time_us_domestic(cfg, master=master)
     cancelled = pd.to_numeric(on_time_us["CANCELLED"], errors="coerce").fillna(1)
     completed = on_time_us[cancelled == 0].copy()
     if completed.empty:
@@ -75,7 +88,7 @@ def build_edges_table(cfg: AtnaConfig) -> pd.DataFrame:
         }
     )
 
-    t100_us = load_t100_us_domestic(cfg)
+    t100_us = load_t100_us_domestic(cfg, master=master)
     t_agg = _aggregate_t100_routes(t100_us)
     t_agg = t_agg.rename(
         columns={

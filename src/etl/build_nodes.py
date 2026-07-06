@@ -22,10 +22,6 @@ NODES_COLUMNS = [
     "degree_total",
 ]
 
-# Degrees = counts of edge **rows** in ``edges.csv`` (one row per directed route in the
-# monthly aggregate). ``degree_out`` is the number of distinct destinations served;
-# ``degree_in`` is the number of distinct origins with flights into the airport.
-
 
 def _read_edges(cfg: AtnaConfig) -> pd.DataFrame:
     path = cfg.processed_dir / "edges.csv"
@@ -37,7 +33,12 @@ def _read_edges(cfg: AtnaConfig) -> pd.DataFrame:
 
 
 def build_nodes_table(cfg: AtnaConfig, edges: pd.DataFrame | None = None) -> pd.DataFrame:
-    """Per-airport node metrics: traffic and log-strength sums from directed edges."""
+    """Per-airport node metrics: traffic and log-strength sums from directed edges.
+
+    Degrees = counts of edge **rows** in ``edges.csv`` (one row per directed route in the
+    monthly aggregate). ``degree_out`` is the number of distinct destinations served;
+    ``degree_in`` is the number of distinct origins with flights into the airport.
+    """
     if edges is None:
         edges = _read_edges(cfg)
     if edges.empty:

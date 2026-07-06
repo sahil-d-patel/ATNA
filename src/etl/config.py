@@ -77,7 +77,6 @@ def load_config(path: Path | str | None = None) -> AtnaConfig:
     snapshot_id = data.get("snapshot_id")
     if not isinstance(snapshot_id, str):
         raise TypeError(f"snapshot_id must be a non-empty string, got {type(snapshot_id).__name__}")
-    _validate_snapshot_id(snapshot_id)
 
     on_time_rel, t100_rel, master_rel, processed_rel = _format_templates(data, snapshot_id)
     root = REPO_ROOT.resolve()

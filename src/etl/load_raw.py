@@ -38,7 +38,7 @@ import pandas as pd
 
 from etl.config import AtnaConfig, validate_paths
 
-# Preserve BTS integer IDs without float coercion
+# Preserve BTS integer IDs without float coercion (master, on-time, and T-100 sets).
 _INT_COLS_MASTER = {"AIRPORT_SEQ_ID", "AIRPORT_ID", "CITY_MARKET_ID"}
 _INT_COLS_ON_TIME = {
     "YEAR",
@@ -63,12 +63,12 @@ def _read_csv_typed(path: Path, int_columns: set[str]) -> pd.DataFrame:
     return df
 
 
-def read_master_airport_file(path: Path) -> pd.DataFrame:
+def _read_master_airport_file(path: Path) -> pd.DataFrame:
     """Load full master coordinate file (all airports)."""
     return _read_csv_typed(path, _INT_COLS_MASTER)
 
 
-def read_on_time_file(path: Path, year: int, month: int) -> pd.DataFrame:
+def _read_on_time_file(path: Path, year: int, month: int) -> pd.DataFrame:
     """Load on-time CSV and keep rows for ``year`` / ``month``."""
     df = _read_csv_typed(path, _INT_COLS_ON_TIME)
     if "YEAR" not in df.columns or "MONTH" not in df.columns:
@@ -77,10 +77,10 @@ def read_on_time_file(path: Path, year: int, month: int) -> pd.DataFrame:
     return out
 
 
-def read_t100_file(path: Path, year: int, month: int) -> pd.DataFrame:
+def _read_t100_file(path: Path, year: int, month: int) -> pd.DataFrame:
     """Load T-100 segment CSV and keep rows for ``year`` / ``month``."""
     df = _read_csv_typed(path, _INT_COLS_T100)
-    for col in ("PASSENGERS", "SEATS", "DEPARTURES_SCHEDULED", "DEPARTURES_PERFORMED"):
+    for col in ("PASSENGERS", "SEATS", "DEPARTURES_PERFORMED"):
         if col in df.columns:
             df[col] = pd.to_numeric(df[col], errors="coerce")
     if "YEAR" not in df.columns or "MONTH" not in df.columns:
@@ -122,31 +122,43 @@ def snapshot_year_month(cfg: AtnaConfig) -> tuple[int, int]:
 
 def load_master(cfg: AtnaConfig) -> pd.DataFrame:
     """Load master airport reference (full table)."""
-    return read_master_airport_file(cfg.raw_master_airport)
+    return _read_master_airport_file(cfg.raw_master_airport)
 
 
 def load_on_time(cfg: AtnaConfig) -> pd.DataFrame:
     """Load on-time rows for the configured snapshot month (unfiltered by country)."""
     y, m = snapshot_year_month(cfg)
-    return read_on_time_file(cfg.raw_on_time, y, m)
+    return _read_on_time_file(cfg.raw_on_time, y, m)
 
 
 def load_t100(cfg: AtnaConfig) -> pd.DataFrame:
     """Load T-100 rows for the configured snapshot month (unfiltered by country)."""
     y, m = snapshot_year_month(cfg)
-    return read_t100_file(cfg.raw_t100, y, m)
+    return _read_t100_file(cfg.raw_t100, y, m)
 
 
-def load_on_time_us_domestic(cfg: AtnaConfig) -> pd.DataFrame:
-    """On-time for snapshot month, U.S.–U.S. legs only."""
-    master = load_master(cfg)
+def load_on_time_us_domestic(cfg: AtnaConfig, master: pd.DataFrame | None = None) -> pd.DataFrame:
+    """On-time for snapshot month, U.S.–U.S. legs only.
+
+    Args:
+        cfg: Resolved pipeline config.
+        master: Pre-loaded master coordinate table; loaded internally when ``None``.
+    """
+    if master is None:
+        master = load_master(cfg)
     ot = load_on_time(cfg)
     return filter_us_domestic_on_time(ot, master)
 
 
-def load_t100_us_domestic(cfg: AtnaConfig) -> pd.DataFrame:
-    """T-100 for snapshot month, U.S.–U.S. legs only."""
-    master = load_master(cfg)
+def load_t100_us_domestic(cfg: AtnaConfig, master: pd.DataFrame | None = None) -> pd.DataFrame:
+    """T-100 for snapshot month, U.S.–U.S. legs only.
+
+    Args:
+        cfg: Resolved pipeline config.
+        master: Pre-loaded master coordinate table; loaded internally when ``None``.
+    """
+    if master is None:
+        master = load_master(cfg)
     t = load_t100(cfg)
     return filter_us_domestic_t100(t, master)
 

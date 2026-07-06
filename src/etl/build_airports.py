@@ -31,10 +31,18 @@ def airport_ids_in_mvp_slice(on_time_us: pd.DataFrame) -> set[int]:
     return set(o.astype(int).unique()) | set(d.astype(int).unique())
 
 
-def build_airports_table(cfg: AtnaConfig) -> pd.DataFrame:
-    """Return §6.1 columns for airports appearing in the U.S. domestic MVP slice."""
-    master = load_master(cfg)
-    on_time_us = load_on_time_us_domestic(cfg)
+def build_airports_table(cfg: AtnaConfig, master: pd.DataFrame | None = None) -> pd.DataFrame:
+    """Return §6.1 columns for airports appearing in the U.S. domestic MVP slice.
+
+    Args:
+        cfg: Resolved pipeline config.
+        master: Pre-loaded master coordinate table; loaded internally when ``None``.
+            Callers building multiple tables per run can pass a shared load to
+            avoid re-parsing the master CSV.
+    """
+    if master is None:
+        master = load_master(cfg)
+    on_time_us = load_on_time_us_domestic(cfg, master=master)
     ids = airport_ids_in_mvp_slice(on_time_us)
     sub = master[master["AIRPORT_ID"].isin(ids)].copy()
     if sub.empty:
@@ -44,11 +52,7 @@ def build_airports_table(cfg: AtnaConfig) -> pd.DataFrame:
     sub = sub.drop_duplicates(subset=["AIRPORT_ID"], keep="first")
 
     closed = sub["AIRPORT_IS_CLOSED"].fillna(0)
-    try:
-        closed_i = pd.to_numeric(closed, errors="coerce").fillna(0).astype(int)
-    except (TypeError, ValueError):
-        closed_i = closed.astype(str).str.strip().isin(("1", "1.0", "True", "true")).astype(int)
-
+    closed_i = pd.to_numeric(closed, errors="coerce").fillna(0).astype(int)
     active = (closed_i == 0).astype(int)
 
     tz = sub["UTC_LOCAL_TIME_VARIATION"].astype(str).replace({"nan": ""})
