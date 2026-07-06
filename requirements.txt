@@ -4,10 +4,18 @@ pandas>=2.2.0,<3
 PyYAML>=6.0.1
 pytest>=8.0.0
 
-# Graph metrics & communities (Phase 2)
+# Graph metrics & communities
 networkx>=3.2,<4
+scipy>=1.11,<2          # required by networkx PageRank/eigenvector
 python-igraph>=0.11,<1
 leidenalg>=0.10,<1
+
+# Streamlit application
+streamlit>=1.49,<2
+plotly>=5.24,<7
+
+# Static map smoke checks (scripts/metrics)
+matplotlib>=3.8,<4
 
 # Data acquisition (download scripts)
 playwright>=1.49.0
