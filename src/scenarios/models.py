@@ -37,17 +37,6 @@ class RouteRemovalPayload:
 
 
 @dataclass(frozen=True)
-class ScenarioRequest:
-    """Stable scenario request metadata for deterministic execution."""
-
-    snapshot_id: str
-    scenario_type: ScenarioType
-    target_airport_id: int | None = None
-    target_origin_id: int | None = None
-    target_destination_id: int | None = None
-
-
-@dataclass(frozen=True)
 class ScenarioEditResult:
     """Normalized edit result metadata returned by graph edit primitives."""
 

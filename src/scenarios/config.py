@@ -72,7 +72,8 @@ def load_scenario_config(path: Path | str | None = None) -> ScenarioConfig:
     scenarios_rel = _require_output_key(output, "scenarios_csv").format(**ctx)
     exposure_rel = _require_output_key(output, "scenario_exposure_csv").format(**ctx)
 
-    root = REPO_ROOT.resolve()
+    # REPO_ROOT is already resolved at module load, so no further .resolve() here.
+    root = REPO_ROOT
     processed_dir = (root / processed_rel).resolve()
     scenarios_csv = (root / scenarios_rel).resolve()
     scenario_exposure_csv = (root / exposure_rel).resolve()

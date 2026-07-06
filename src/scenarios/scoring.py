@@ -33,9 +33,23 @@ def lcc_loss(pre_graph: nx.DiGraph, post_graph: nx.DiGraph) -> float:
     return _finite_percentage(100.0 * (1.0 - (post / pre)))
 
 
-def reachability_loss(pre_graph: nx.DiGraph, post_graph: nx.DiGraph) -> float:
-    """Compute reachability loss with denominator guard for zero pre baseline."""
-    pre = float(reachable_pairs_count(pre_graph))
+def reachability_loss(
+    pre_graph: nx.DiGraph,
+    post_graph: nx.DiGraph,
+    *,
+    pre_reachable_pairs: int | None = None,
+) -> float:
+    """Compute reachability loss with denominator guard for zero pre baseline.
+
+    ``pre_reachable_pairs`` accepts the baseline reachable-pair count when a batch
+    caller has already computed it for the unchanged ``pre_graph``; ``None``
+    recomputes it here for identical standalone behavior.
+    """
+    pre = (
+        float(reachable_pairs_count(pre_graph))
+        if pre_reachable_pairs is None
+        else float(pre_reachable_pairs)
+    )
     post = float(reachable_pairs_count(post_graph))
     if pre <= 0.0:
         return 0.0
@@ -84,10 +98,18 @@ def aggregate_scenario_scores(
     post_graph: nx.DiGraph,
     exposure_by_airport: Mapping[int, Mapping[str, float | int]],
     total_airports: int,
+    pre_reachable_pairs: int | None = None,
 ) -> dict[str, float]:
-    """Return locked aggregate cards for scenario outputs."""
+    """Return locked aggregate cards for scenario outputs.
+
+    ``pre_reachable_pairs`` is threaded to :func:`reachability_loss` so batch
+    callers can reuse the baseline reachable-pair count across scenarios that
+    share the same unchanged ``pre_graph``; ``None`` recomputes it as before.
+    """
     lcc = lcc_loss(pre_graph, post_graph)
-    reach = reachability_loss(pre_graph, post_graph)
+    reach = reachability_loss(
+        pre_graph, post_graph, pre_reachable_pairs=pre_reachable_pairs
+    )
     ripple = ripple_severity(exposure_by_airport, total_airports=total_airports)
     impact = impact_score(
         lcc_loss_value=lcc,

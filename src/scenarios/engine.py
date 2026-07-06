@@ -22,8 +22,16 @@ def run_scenario(
     scenario_type: str | ScenarioType,
     payload: Mapping[str, Any],
     created_at: str | None = None,
+    precomputed_shares: Mapping[int, Mapping[int, float]] | None = None,
+    pre_reachable_pairs: int | None = None,
 ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
-    """Run one scenario end-to-end and return normalized scenario and exposure rows."""
+    """Run one scenario end-to-end and return normalized scenario and exposure rows.
+
+    ``precomputed_shares`` and ``pre_reachable_pairs`` let batch callers reuse the
+    normalized neighbor shares and reachable-pair count of the unchanged baseline
+    graph across many scenarios; both default to ``None`` for identical single-run
+    behavior.
+    """
     if not isinstance(baseline_graph, nx.DiGraph):
         raise TypeError("baseline_graph must be a networkx.DiGraph")
     if not isinstance(snapshot_id, str) or not snapshot_id.strip():
@@ -37,6 +45,7 @@ def run_scenario(
         exposure_by_airport = airport_removal_exposure(
             baseline_graph,
             removed_airport_id=int(edit.removed_airport_id),
+            precomputed_shares=precomputed_shares,
         )
         edited_airports = [int(edit.removed_airport_id)]
         edited_routes: list[dict[str, int]] = []
@@ -66,6 +75,7 @@ def run_scenario(
         post_graph=post_graph,
         exposure_by_airport=exposure_by_airport,
         total_airports=baseline_graph.number_of_nodes(),
+        pre_reachable_pairs=pre_reachable_pairs,
     )
     scenario_row = {
         "scenario_id": scenario_id,
@@ -111,11 +121,11 @@ def normalize_exposure_rows(
         (
             (
                 int(airport_id),
-                float(payload.get("exposure_score", 0.0)),
-                int(payload.get("hop_level", 0)),
+                float(airport_data.get("exposure_score", 0.0)),
+                int(airport_data.get("hop_level", 0)),
             )
-            for airport_id, payload in exposure_by_airport.items()
-            if float(payload.get("exposure_score", 0.0)) > 0.0
+            for airport_id, airport_data in exposure_by_airport.items()
+            if float(airport_data.get("exposure_score", 0.0)) > 0.0
         ),
         key=lambda item: (-item[1], item[0]),
     )

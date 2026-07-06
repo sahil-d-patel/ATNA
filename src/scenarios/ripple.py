@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Dict, Mapping
+from typing import Mapping
 
 import networkx as nx
 
@@ -47,13 +47,22 @@ def airport_removal_exposure(
     removed_airport_id: int,
     *,
     lambda_discount: float = LAMBDA_DISCOUNT,
+    precomputed_shares: Mapping[int, Mapping[int, float]] | None = None,
 ) -> dict[int, dict[str, float | int]]:
-    """Compute 2-hop exposure after removing an airport from baseline topology."""
+    """Compute 2-hop exposure after removing an airport from baseline topology.
+
+    ``precomputed_shares`` lets batch callers pass the normalized neighbor shares
+    of the (unchanged) baseline graph once instead of rebuilding them per airport;
+    ``None`` recomputes from ``graph`` for identical standalone behavior.
+    """
     if not graph.has_node(removed_airport_id):
         raise ValueError(f"removed airport {removed_airport_id} does not exist in graph")
 
-    dependency = build_dependency_weights(graph)
-    shares = normalize_neighbor_shares(dependency)
+    if precomputed_shares is None:
+        dependency = build_dependency_weights(graph)
+        shares: Mapping[int, Mapping[int, float]] = normalize_neighbor_shares(dependency)
+    else:
+        shares = precomputed_shares
     seed = {int(removed_airport_id): AIRPORT_REMOVAL_SHOCK}
     return _propagate_two_hops(shares, seed, lambda_discount=lambda_discount)
 
@@ -93,12 +102,12 @@ def _propagate_two_hops(
     if lambda_discount < 0.0:
         raise ValueError("lambda_discount must be non-negative")
 
-    hop1: Dict[int, float] = defaultdict(float)
+    hop1: dict[int, float] = defaultdict(float)
     for seed_node, seed_value in seeds.items():
         for nbr, share in shares.get(int(seed_node), {}).items():
             hop1[int(nbr)] += float(seed_value) * float(share)
 
-    hop2: Dict[int, float] = defaultdict(float)
+    hop2: dict[int, float] = defaultdict(float)
     for mid, mid_exposure in hop1.items():
         for nbr, share in shares.get(int(mid), {}).items():
             hop2[int(nbr)] += lambda_discount * float(mid_exposure) * float(share)

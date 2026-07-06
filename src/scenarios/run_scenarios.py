@@ -16,7 +16,7 @@ from scenarios.models import ScenarioType
 
 
 def deterministic_demo_scenarios(graph: nx.DiGraph) -> list[dict[str, Any]]:
-    """Build a deterministic mixed demo set (>=3) from graph topology."""
+    """Build a deterministic mixed demo set (exactly 3) from graph topology."""
     nodes = sorted(int(node) for node in graph.nodes())
     if len(nodes) < 2:
         raise ValueError("Need at least two airports to build demo scenarios")
