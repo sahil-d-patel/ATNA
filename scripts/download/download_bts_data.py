@@ -333,8 +333,7 @@ def parse_args() -> argparse.Namespace:
         default="all",
         help="Which dataset(s) to fetch",
     )
-    p.add_argument("--headless", action="store_true", default=True, help="Run browser headless (default)")
-    p.add_argument("--headed", action="store_true", help="Show browser window")
+    p.add_argument("--headed", action="store_true", help="Show browser window (default: headless)")
     p.add_argument("--pause", type=float, default=3.0, help="Seconds between downloads")
     p.add_argument(
         "--continue-on-error",

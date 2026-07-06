@@ -65,17 +65,10 @@ def _canonical_display_labels(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFr
     This does not change source IDs in metrics.csv; it only stabilizes rendering labels
     (`C01`, `C02`, ...) for easier cross-run audits and screenshot comparison.
     """
-    agg = (
+    legend = (
         df.groupby("leiden_community_id", as_index=False)["airport_id"]
-        .count()
-        .rename(columns={"airport_id": "community_size"})
+        .agg(community_size="count", min_airport_id="min")
     )
-    min_airport = (
-        df.groupby("leiden_community_id", as_index=False)["airport_id"]
-        .min()
-        .rename(columns={"airport_id": "min_airport_id"})
-    )
-    legend = agg.merge(min_airport, on="leiden_community_id", how="left")
     legend = legend.sort_values(
         by=["community_size", "min_airport_id", "leiden_community_id"],
         ascending=[False, True, True],
@@ -90,6 +83,8 @@ def _canonical_display_labels(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFr
 
 
 def _write_legend_artifact(df: pd.DataFrame, legend: pd.DataFrame, out_csv: Path) -> Path:
+    # head(8) samples by row order within each group (not sorted by airport_id or
+    # size); acceptable here since this is a smoke-check artifact, not an audited output.
     top_ids = (
         df.groupby("leiden_community_id")["airport_id"]
         .apply(lambda s: ",".join(str(v) for v in s.astype(int).head(8).tolist()))

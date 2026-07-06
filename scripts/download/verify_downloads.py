@@ -7,15 +7,11 @@ Run from repo root:
 from __future__ import annotations
 
 import argparse
-import re
 import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 RAW = REPO_ROOT / "data" / "raw"
-
-ON_TIME_RE = re.compile(r"^on_time_(\d{4})_(\d{2})\.csv$")
-T100_RE = re.compile(r"^t100_(\d{4})_(\d{2})\.csv$")
 
 
 def check_file(path: Path) -> tuple[bool, str]:
@@ -40,22 +36,16 @@ def main() -> int:
         ok, why = check_file(ot)
         if not ok:
             errors.append(f"on_time {year}-{mm}: {why} ({ot})")
-        elif not ON_TIME_RE.match(ot.name):
-            errors.append(f"on_time bad filename: {ot.name}")
 
         t1 = RAW / "t100_segment" / year / f"t100_{year}_{mm}.csv"
         ok, why = check_file(t1)
         if not ok:
             errors.append(f"t100 {year}-{mm}: {why} ({t1})")
-        elif not T100_RE.match(t1.name):
-            errors.append(f"t100 bad filename: {t1.name}")
 
     mc = RAW / "airport_reference" / "master_coordinate_latest.csv"
     ok, why = check_file(mc)
     if not ok:
         errors.append(f"master_coordinate: {why} ({mc})")
-    elif mc.name != "master_coordinate_latest.csv":
-        errors.append(f"master bad filename: {mc.name}")
 
     if errors:
         print("VERIFY FAILED", file=sys.stderr)
