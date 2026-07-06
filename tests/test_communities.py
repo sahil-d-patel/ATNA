@@ -13,11 +13,8 @@ from metrics.run_metrics import run
 
 def test_leiden_partition_covers_all_nodes():
     # Skip if optional deps are not installed in the current environment.
-    try:
-        import igraph  # noqa: F401
-        import leidenalg  # noqa: F401
-    except Exception:
-        return
+    pytest.importorskip("igraph")
+    pytest.importorskip("leidenalg")
 
     g = nx.DiGraph()
     g.add_edge(1, 2, weight=1.0)
@@ -94,7 +91,7 @@ def test_run_writes_communities_csv_and_ids_align(tmp_path: Path):
         edges_csv=cfg.edges_csv,
         metrics_csv=(tmp_path / "metrics.csv").resolve(),
         communities_csv=(tmp_path / "communities.csv").resolve(),
-        route_metrics_csv=cfg.route_metrics_csv,
+        route_metrics_csv=(tmp_path / "route_metrics.csv").resolve(),
     )
 
     metrics_path = run(cfg2)

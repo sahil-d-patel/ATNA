@@ -1,4 +1,4 @@
-"""Contract and join-sanity tests for DATA-04/DATA-05 (plan 01-04)."""
+"""Contract and join-sanity tests for the nodes/airports/edges build stages."""
 
 from __future__ import annotations
 
@@ -6,19 +6,10 @@ from dataclasses import replace
 
 import numpy as np
 import pandas as pd
-import pytest
 
 from etl.build_airports import AIRPORTS_COLUMNS, build_airports_table
 from etl.build_edges import build_edges_table
 from etl.build_nodes import NODES_COLUMNS, build_nodes_table
-from etl.config import load_config, validate_paths
-
-
-@pytest.fixture(scope="module")
-def cfg():
-    c = load_config()
-    validate_paths(c)
-    return c
 
 
 def test_nodes_columns_and_strength_identity(cfg):

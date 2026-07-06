@@ -3,6 +3,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 import networkx as nx
+import pytest
 
 from metrics.centralities import (
     compute_betweenness,
@@ -61,8 +62,8 @@ def test_optional_real_snapshot_graph():
 
     try:
         edges = load_edges()
-    except Exception:
-        return
+    except (FileNotFoundError, ValueError) as exc:
+        pytest.skip(f"processed edges unavailable for configured snapshot: {exc}")
     g = build_analysis_graph(edges)
     pr = compute_pagerank(g)
     bc = compute_betweenness(g)

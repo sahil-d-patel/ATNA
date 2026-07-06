@@ -1,4 +1,4 @@
-"""Graph construction contracts: METR-01 DiGraph from ``analysis_weight``."""
+"""Graph construction contracts: DiGraph built from ``analysis_weight``."""
 
 from __future__ import annotations
 

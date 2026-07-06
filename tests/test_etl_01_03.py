@@ -1,4 +1,4 @@
-"""Contract and sanity tests for DATA-02/DATA-03 ETL (plan 01-03)."""
+"""Contract and sanity tests for the raw-load and edge/airport build ETL stages."""
 
 from __future__ import annotations
 
@@ -7,12 +7,10 @@ from dataclasses import replace
 
 import numpy as np
 import pandas as pd
-import pytest
 
 from etl.build_airports import AIRPORTS_COLUMNS, build_airports_table
 from etl.build_edges import EDGES_COLUMNS, build_edges_table
 from etl.build_nodes import NODES_COLUMNS
-from etl.config import load_config, validate_paths
 from etl.load_raw import (
     load_on_time,
     load_on_time_us_domestic,
@@ -22,15 +20,7 @@ from etl.load_raw import (
 )
 
 
-@pytest.fixture(scope="module")
-def cfg():
-    c = load_config()
-    validate_paths(c)
-    return c
-
-
 def test_load_raw_non_empty(cfg):
-    validate_paths(cfg)
     ot = load_on_time(cfg)
     t = load_t100(cfg)
     assert len(ot) > 0

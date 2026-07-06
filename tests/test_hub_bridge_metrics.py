@@ -55,7 +55,7 @@ def test_metrics_csv_written_if_processed_inputs_exist(tmp_path: Path):
         edges_csv=cfg.edges_csv,
         metrics_csv=(tmp_path / "metrics.csv").resolve(),
         communities_csv=(tmp_path / "communities.csv").resolve(),
-        route_metrics_csv=cfg.route_metrics_csv,
+        route_metrics_csv=(tmp_path / "route_metrics.csv").resolve(),
     )
 
     out_path = run(cfg2)
