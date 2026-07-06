@@ -169,7 +169,7 @@ Options:
 - `--pause 3` — seconds between downloads (default `3`)
 - `--continue-on-error` — keep going after a failed month (default stops on first failure)
 
-TranStats returns a **ZIP** per request; the script saves the inner CSV to `data/raw/...` using the names in `prompt.md`. Original ZIPs are not kept (only the extracted CSV bytes are written).
+TranStats returns a **ZIP** per request; the script saves the inner CSV to `data/raw/...` using the names in [`docs/data_download_spec.md`](docs/data_download_spec.md). Original ZIPs are not kept (only the extracted CSV bytes are written).
 
 ### Verify files
 
@@ -201,4 +201,4 @@ For a reproducible manual path, open each DL_SelectFields URL, choose **Geograph
 - Spec pointer: [`docs/specs/README.md`](docs/specs/README.md)
 - Data rationale: `data/reference/README_data_sources.md`
 - Field mapping: `data/reference/field_selection_notes.md`
-- Download spec: `prompt.md`
+- Download spec: [`docs/data_download_spec.md`](docs/data_download_spec.md)

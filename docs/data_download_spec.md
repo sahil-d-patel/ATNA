@@ -1,6 +1,6 @@
-# Download and Organize ATNA MVP Data
+# ATNA MVP Data Download Specification
 
-You are helping build the **ATNA MVP** for **U.S. domestic airport network analysis**.
+Defines the reproducible data-download workflow for the **ATNA MVP** (U.S. domestic airport network analysis): exact BTS sources, field selections, folder layout, and file naming implemented by `scripts/download/download_bts_data.py`.
 
 ## Core project constraints
 - Scope: **U.S. domestic only**
