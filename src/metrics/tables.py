@@ -62,17 +62,8 @@ def compute_strength_degree_from_graph(G: nx.DiGraph) -> pd.DataFrame:
             ]
         )
 
-    strength_out = {}
-    strength_in = {}
-    for n in nodes:
-        out_w = 0.0
-        for _, _, w in G.out_edges(n, data="weight"):
-            out_w += float(w)
-        in_w = 0.0
-        for _, _, w in G.in_edges(n, data="weight"):
-            in_w += float(w)
-        strength_out[n] = out_w
-        strength_in[n] = in_w
+    strength_out = {n: float(w) for n, w in G.out_degree(nodes, weight="weight")}
+    strength_in = {n: float(w) for n, w in G.in_degree(nodes, weight="weight")}
 
     deg_out = dict(G.out_degree(nodes))
     deg_in = dict(G.in_degree(nodes))
@@ -103,13 +94,12 @@ def assert_metr02_nodes_match_graph(
     - Strength uses sum of edge ``weight`` values.
     - Degree uses integer neighbor counts (one edge per directed pair per METR-01 invariant).
     """
-    required = [c for c in _NODES_REQUIRED if c in nodes_df.columns]
     missing = [c for c in _NODES_REQUIRED if c not in nodes_df.columns]
     if missing:
         raise ValueError(f"nodes_df missing required columns: {missing}")
 
     calc = compute_strength_degree_from_graph(G)
-    base = nodes_df[required].copy()
+    base = nodes_df[list(_NODES_REQUIRED)].copy()
     base["airport_id"] = pd.to_numeric(base["airport_id"], errors="raise").astype(int)
 
     merged = base.merge(calc, on="airport_id", how="left", suffixes=("", "_calc"))

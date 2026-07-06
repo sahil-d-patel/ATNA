@@ -30,12 +30,27 @@ _METRICS_COL_ORDER = [
 ]
 
 
-def build_metrics_frame(cfg: MetricsConfig, *, g: "nx.DiGraph | None" = None) -> pd.DataFrame:
-    """Compute per-airport metrics (includes Leiden communities, METR-05)."""
-    nodes = load_nodes(cfg)
-    edges = load_edges(cfg)
+def build_metrics_frame(
+    cfg: MetricsConfig,
+    *,
+    g: "nx.DiGraph | None" = None,
+    nodes_df: pd.DataFrame | None = None,
+    edges_df: pd.DataFrame | None = None,
+) -> pd.DataFrame:
+    """Compute per-airport metrics (includes Leiden communities, METR-05).
+
+    Args:
+        cfg: Metrics configuration (snapshot id, CSV paths).
+        g: Optional prebuilt analysis graph. If omitted, it is built from ``edges_df``
+            (or loaded from ``cfg`` when ``edges_df`` is also omitted).
+        nodes_df: Optional preloaded ``nodes.csv`` frame. If omitted, loaded from ``cfg``.
+        edges_df: Optional preloaded ``edges.csv`` frame. Only read when ``g`` is not
+            already supplied (avoids redundant I/O when the caller already built the graph).
+    """
+    nodes = nodes_df if nodes_df is not None else load_nodes(cfg)
 
     if g is None:
+        edges = edges_df if edges_df is not None else load_edges(cfg)
         g = build_analysis_graph(edges)
         # Ensure the universe includes all airports in nodes.csv (including isolated nodes).
         g.add_nodes_from(nodes["airport_id"].astype(int).tolist())
@@ -126,7 +141,7 @@ def run(cfg_or_path: MetricsConfig | Path | str | None = None) -> Path:
     g.add_nodes_from(nodes["airport_id"].astype(int).tolist())
 
     # Metrics frame (pagerank, betweenness, hub/bridge, etc.)
-    df = build_metrics_frame(cfg, g=g)
+    df = build_metrics_frame(cfg, g=g, nodes_df=nodes, edges_df=edges)
     write_metrics_csv(df, cfg.metrics_csv)
 
     # communities.csv rollup (spec §6.5 / §7.9)

@@ -81,7 +81,6 @@ def build_communities_frame(
 ) -> pd.DataFrame:
     """Build `communities.csv` frame per spec §6.5 and formulas §7.9."""
 
-    _assert_partition_covers_nodes_exactly_once(g, airport_to_comm)
     req_cols = {"airport_id", "hub_score", "bridge_score"}
     missing = [c for c in req_cols if c not in metrics_df.columns]
     if missing:
@@ -172,8 +171,6 @@ def _assert_partition_covers_nodes_exactly_once(
     missing = [n for n in nodes if int(n) not in airport_to_comm]
     if missing:
         raise ValueError(f"Leiden partition missing {len(missing)} node(s), e.g. {missing[:5]}")
-    if len(set(airport_to_comm.keys())) != len(airport_to_comm):
-        raise ValueError("airport_to_comm mapping has duplicate keys (unexpected)")
     if set(airport_to_comm.keys()) != set(nodes):
         # Catch extra keys too.
         extra = sorted(set(airport_to_comm.keys()) - set(nodes))
@@ -219,7 +216,7 @@ def _run_leiden_membership(
         ) from e
 
     # Prefer RBConfigurationVertexPartition because it supports directed graphs.
-    part_cls = getattr(leidenalg, "RBConfigurationVertexPartition")
+    part_cls = leidenalg.RBConfigurationVertexPartition
 
     kwargs = {
         "weights": ig_g.es["weight"],

@@ -27,6 +27,5 @@ def percentile_rank_0_100(series: pd.Series) -> pd.Series:
 
     out = s.rank(method="max", pct=True) * 100.0
     out = out.astype(float)
-    out.index = s.index
     return out
 

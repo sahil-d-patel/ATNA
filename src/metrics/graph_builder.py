@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Union
 
 import networkx as nx
 import pandas as pd
@@ -18,7 +17,7 @@ _GRAPH_COLUMNS = ("origin_id", "destination_id", "analysis_weight")
 
 
 def load_edges(
-    cfg_or_path: Union[MetricsConfig, Path, None] = None,
+    cfg_or_path: MetricsConfig | Path | None = None,
     *,
     snapshot_id: str | None = None,
 ) -> pd.DataFrame:
@@ -48,8 +47,6 @@ def load_edges(
     df = pd.read_csv(path)
     _validate_file_columns(df)
     if snap_filter is not None:
-        if "snapshot_id" not in df.columns:
-            raise ValueError("edges frame has no snapshot_id column; cannot filter")
         df = df[df["snapshot_id"].astype(str) == snap_filter].copy()
     return df.reset_index(drop=True)
 
@@ -89,12 +86,19 @@ def build_analysis_graph(edges_df: pd.DataFrame) -> nx.DiGraph:
     _assert_positive_analysis_weights(edges_df)
     _assert_one_row_per_directed_pair(edges_df)
 
-    g = nx.DiGraph()
-    for row in edges_df.itertuples(index=False):
-        o = int(row.origin_id)
-        d = int(row.destination_id)
-        w = float(row.analysis_weight)
-        g.add_edge(o, d, weight=w)
+    frame = edges_df[["origin_id", "destination_id", "analysis_weight"]].copy()
+    frame["origin_id"] = frame["origin_id"].astype(int)
+    frame["destination_id"] = frame["destination_id"].astype(int)
+    frame["analysis_weight"] = frame["analysis_weight"].astype(float)
+    frame = frame.rename(columns={"analysis_weight": "weight"})
+
+    g = nx.from_pandas_edgelist(
+        frame,
+        source="origin_id",
+        target="destination_id",
+        edge_attr="weight",
+        create_using=nx.DiGraph,
+    )
     return g
 
 
