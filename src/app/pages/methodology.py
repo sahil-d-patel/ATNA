@@ -7,7 +7,7 @@ import streamlit as st
 
 def render_methodology_page() -> None:
     """Render APP-07 methodology content aligned to implementation."""
-    st.title("APP-07 Methodology")
+    st.title("Methodology")
     st.caption("Data/model assumptions, formulas, and caveats used by this implementation.")
 
     st.header("Data pipeline and graph model")

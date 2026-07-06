@@ -6,28 +6,7 @@ from typing import Iterable
 
 import pandas as pd
 
-try:
-    import streamlit as st
-except ModuleNotFoundError:  # pragma: no cover - fallback for non-UI test environments
-    class _StreamlitFallback:
-        @staticmethod
-        def metric(*_args, **_kwargs):  # type: ignore[no-untyped-def]
-            return None
-
-        @staticmethod
-        def info(*_args, **_kwargs):  # type: ignore[no-untyped-def]
-            return None
-
-        @staticmethod
-        def dataframe(*_args, **_kwargs):  # type: ignore[no-untyped-def]
-            return None
-
-        @staticmethod
-        def caption(*_args, **_kwargs):  # type: ignore[no-untyped-def]
-            return None
-
-    st = _StreamlitFallback()  # type: ignore[assignment]
-
+from app.streamlit_compat import st
 
 EMPTY_FILTER_MESSAGE = "No rows for current filters."
 

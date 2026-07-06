@@ -7,22 +7,9 @@ from pathlib import Path
 import pandas as pd
 
 from app.config import AppConfig, load_app_config
+from app.streamlit_compat import st
 
 _MASTER_AIRPORT_REL = "data/raw/airport_reference/master_coordinate_latest.csv"
-
-try:
-    import streamlit as st
-except ModuleNotFoundError:  # pragma: no cover - fallback for non-UI test environments
-    class _StreamlitFallback:
-        @staticmethod
-        def cache_data(func=None, **_kwargs):  # type: ignore[no-untyped-def]
-            if func is None:
-                def decorator(inner):  # type: ignore[no-untyped-def]
-                    return inner
-                return decorator
-            return func
-
-    st = _StreamlitFallback()  # type: ignore[assignment]
 
 
 REQUIRED_COLUMNS: dict[str, set[str]] = {

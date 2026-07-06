@@ -9,6 +9,7 @@ from app.data_loader import load_route_metrics
 from app.ui.components import show_dataframe_safe, show_empty_state, show_metric_card, show_table_count
 from app.ui.formatters import format_integer, format_percent, format_score
 
+
 def _apply_cross_filter(df: pd.DataFrame, cross_filter: str) -> pd.DataFrame:
     if cross_filter == "Cross-community only":
         return df.loc[df["cross_community_flag"].astype(int) == 100].copy()
@@ -19,7 +20,7 @@ def _apply_cross_filter(df: pd.DataFrame, cross_filter: str) -> pd.DataFrame:
 
 def render_route_explorer_page() -> None:
     """Render APP-05 route exploration."""
-    st.title("APP-05 Route Explorer")
+    st.title("Route Explorer")
     st.caption("Inspect per-route structural criticality and cross-community behavior.")
 
     try:

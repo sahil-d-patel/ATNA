@@ -9,16 +9,31 @@ import pandas as pd
 
 from app.config import AppConfig, load_app_config
 from app.data_loader import load_edges
+from app.streamlit_compat import st
 from metrics.graph_builder import build_analysis_graph
 from scenarios.engine import run_scenario
 from scenarios.models import ScenarioType
+
+
+@st.cache_resource(show_spinner=False)
+def _build_baseline_graph_cached(
+    snapshot_id: str, edges_csv: str, _edges_df: pd.DataFrame
+) -> nx.DiGraph:
+    """Build and cache the baseline DiGraph for one snapshot.
+
+    ``_edges_df`` is underscore-prefixed so Streamlit skips hashing the frame; the
+    cache key is ``(snapshot_id, edges_csv)``. The scenario engine copies the graph
+    before every edit (see ``scenarios.graph_edits``), so the cached instance is
+    never mutated and can be shared safely across reruns.
+    """
+    return build_analysis_graph(_edges_df)
 
 
 def load_baseline_graph(config: AppConfig | None = None) -> nx.DiGraph:
     """Build the canonical baseline graph for scenario execution."""
     cfg = config if config is not None else load_app_config()
     edges_df = load_edges(cfg)
-    return build_analysis_graph(edges_df)
+    return _build_baseline_graph_cached(cfg.snapshot_id, str(cfg.edges_csv), edges_df)
 
 
 def list_airport_ids(config: AppConfig | None = None) -> list[int]:

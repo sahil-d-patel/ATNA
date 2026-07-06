@@ -7,7 +7,7 @@ import streamlit as st
 
 from app.config import load_app_config
 from app.data_loader import load_metrics, load_nodes
-from app.ui.components import EMPTY_FILTER_MESSAGE, show_dataframe_safe, show_empty_state, show_metric_card
+from app.ui.components import EMPTY_FILTER_MESSAGE, show_dataframe_safe, show_metric_card
 from app.ui.formatters import format_integer, format_score
 
 
@@ -34,11 +34,15 @@ def _build_airport_table(metrics_df: pd.DataFrame, nodes_df: pd.DataFrame) -> pd
 def render_airport_explorer_page() -> None:
     """Render APP-03 airport explorer."""
     config = load_app_config()
-    metrics_df = load_metrics(config)
-    nodes_df = load_nodes(config)
+    try:
+        metrics_df = load_metrics(config)
+        nodes_df = load_nodes(config)
+    except ValueError as exc:
+        st.error(f"Unable to load airport artifacts: {exc}")
+        return
     airport_df = _build_airport_table(metrics_df, nodes_df)
 
-    st.title("APP-03 Airport Explorer")
+    st.title("Airport Explorer")
     st.caption(
         f"Snapshot `{config.snapshot_id}` sortable airport matrix with vulnerability-aware drilldown."
     )
@@ -71,12 +75,9 @@ def render_airport_explorer_page() -> None:
 
     detail_ids = filtered["airport_id"].astype(int).tolist()
     selected_airport_id = st.selectbox("Airport drilldown", options=detail_ids, index=0)
-    detail_row = filtered.loc[filtered["airport_id"] == selected_airport_id].head(1)
-    if detail_row.empty:
-        show_empty_state(EMPTY_FILTER_MESSAGE)
-        return
-
-    row = detail_row.iloc[0]
+    # selected_airport_id is always drawn from ``detail_ids`` (this same frame),
+    # so the lookup below always matches exactly one row.
+    row = filtered.loc[filtered["airport_id"] == selected_airport_id].head(1).iloc[0]
     st.subheader(f"Airport {int(row['airport_id'])} details")
     col1, col2, col3 = st.columns(3)
     with col1:

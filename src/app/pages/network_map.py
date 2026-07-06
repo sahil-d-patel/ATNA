@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
@@ -11,31 +12,37 @@ from app.data_loader import load_edges, load_metrics, load_route_metrics
 from app.ui.components import EMPTY_FILTER_MESSAGE, show_empty_state
 
 
-def _build_plot(filtered_edges: pd.DataFrame, airport_xy: pd.DataFrame) -> go.Figure:
+def _build_plot(edges_df: pd.DataFrame, airport_xy: pd.DataFrame) -> go.Figure:
     fig = go.Figure()
 
     airport_lookup = airport_xy.set_index("airport_id")
-    line_x: list[float | None] = []
-    line_y: list[float | None] = []
-    line_text: list[str] = []
-    for _, route in filtered_edges.iterrows():
-        origin = int(route["origin_id"])
-        destination = int(route["destination_id"])
-        if origin not in airport_lookup.index or destination not in airport_lookup.index:
-            continue
+    valid = edges_df.loc[
+        edges_df["origin_id"].isin(airport_lookup.index)
+        & edges_df["destination_id"].isin(airport_lookup.index)
+    ]
+    origins = valid["origin_id"]
+    destinations = valid["destination_id"]
 
-        ox, oy = airport_lookup.at[origin, "hub_score"], airport_lookup.at[origin, "bridge_score"]
-        dx, dy = airport_lookup.at[destination, "hub_score"], airport_lookup.at[destination, "bridge_score"]
-        route_text = (
-            f"{origin} -> {destination}<br>"
-            f"month={int(route['month'])}<br>"
-            f"analysis_weight={route['analysis_weight']:.3f}<br>"
-            f"flight_count={int(route['flight_count'])}<br>"
-            f"route_criticality={float(route.get('route_criticality_score', float('nan'))):.3f}"
-        )
-        line_x.extend([ox, dx, None])
-        line_y.extend([oy, dy, None])
-        line_text.extend([route_text, route_text, ""])
+    # Interleave endpoint coordinates as [origin, destination, None, ...] so each
+    # route renders as a separate line segment without a Python-level row loop.
+    ox = airport_lookup.loc[origins, "hub_score"].to_numpy()
+    oy = airport_lookup.loc[origins, "bridge_score"].to_numpy()
+    dx = airport_lookup.loc[destinations, "hub_score"].to_numpy()
+    dy = airport_lookup.loc[destinations, "bridge_score"].to_numpy()
+    separators = np.full(len(valid), None, dtype=object)
+    line_x = np.column_stack([ox, dx, separators]).ravel().tolist()
+    line_y = np.column_stack([oy, dy, separators]).ravel().tolist()
+
+    route_text = (
+        origins.astype(int).astype(str) + " -> " + destinations.astype(int).astype(str)
+        + "<br>month=" + valid["month"].astype(int).astype(str)
+        + "<br>analysis_weight=" + valid["analysis_weight"].map(lambda v: f"{v:.3f}")
+        + "<br>flight_count=" + valid["flight_count"].astype(int).astype(str)
+        + "<br>route_criticality="
+        + valid["route_criticality_score"].map(lambda v: f"{float(v):.3f}")
+    ).to_numpy(dtype=object)
+    blanks = np.full(len(valid), "", dtype=object)
+    line_text = np.column_stack([route_text, route_text, blanks]).ravel().tolist()
 
     fig.add_trace(
         go.Scatter(
@@ -86,11 +93,15 @@ def _build_plot(filtered_edges: pd.DataFrame, airport_xy: pd.DataFrame) -> go.Fi
 def render_network_map_page() -> None:
     """Render APP-02 network map."""
     config = load_app_config()
-    edges_df = load_edges(config)
-    metrics_df = load_metrics(config)
-    route_metrics_df = load_route_metrics(config)
+    try:
+        edges_df = load_edges(config)
+        metrics_df = load_metrics(config)
+        route_metrics_df = load_route_metrics(config)
+    except ValueError as exc:
+        st.error(f"Unable to load network map artifacts: {exc}")
+        return
 
-    st.title("APP-02 Network Map")
+    st.title("Network Map")
     st.caption(
         f"Snapshot `{config.snapshot_id}` routes visualized with month and analysis-weight filters."
     )

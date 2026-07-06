@@ -29,17 +29,17 @@ st.set_page_config(
 )
 
 pages = [
-    st.Page(render_overview_page, title="APP-01 Overview", icon=":material/dashboard:"),
-    st.Page(render_network_map_page, title="APP-02 Network Map", icon=":material/public:"),
+    st.Page(render_overview_page, title="Overview", icon=":material/dashboard:"),
+    st.Page(render_network_map_page, title="Network Map", icon=":material/public:"),
     st.Page(
         render_airport_explorer_page,
-        title="APP-03 Airport Explorer",
+        title="Airport Explorer",
         icon=":material/location_city:",
     ),
-    st.Page(render_communities_page, title="APP-04 Communities", icon=":material/group_work:"),
-    st.Page(render_route_explorer_page, title="APP-05 Route Explorer", icon=":material/route:"),
-    st.Page(render_scenario_editor_page, title="APP-06 Scenario Editor", icon=":material/tune:"),
-    st.Page(render_methodology_page, title="APP-07 Methodology", icon=":material/menu_book:"),
+    st.Page(render_communities_page, title="Communities", icon=":material/group_work:"),
+    st.Page(render_route_explorer_page, title="Route Explorer", icon=":material/route:"),
+    st.Page(render_scenario_editor_page, title="Scenario Editor", icon=":material/tune:"),
+    st.Page(render_methodology_page, title="Methodology", icon=":material/menu_book:"),
 ]
 
 router = st.navigation(pages)

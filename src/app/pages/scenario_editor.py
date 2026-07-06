@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
@@ -79,16 +80,27 @@ def _build_geo_map(
     fig = go.Figure()
     airport_lookup = airports_geo.dropna(subset=["latitude", "longitude"]).set_index("airport_id")
 
-    # Route lines (filtered by weight)
+    # Route lines (filtered by weight). Interleave endpoint coordinates as
+    # [origin, destination, None, ...] so each route is a separate line segment,
+    # built vectorially rather than with a Python-level row loop.
     heavy_edges = edges_df.loc[edges_df["analysis_weight"] >= weight_threshold]
-    lats: list[float | None] = []
-    lons: list[float | None] = []
-    for _, route in heavy_edges.iterrows():
-        o, d = int(route["origin_id"]), int(route["destination_id"])
-        if o not in airport_lookup.index or d not in airport_lookup.index:
-            continue
-        lats += [airport_lookup.at[o, "latitude"], airport_lookup.at[d, "latitude"], None]
-        lons += [airport_lookup.at[o, "longitude"], airport_lookup.at[d, "longitude"], None]
+    valid_edges = heavy_edges.loc[
+        heavy_edges["origin_id"].isin(airport_lookup.index)
+        & heavy_edges["destination_id"].isin(airport_lookup.index)
+    ]
+    origins = valid_edges["origin_id"]
+    destinations = valid_edges["destination_id"]
+    separators = np.full(len(valid_edges), None, dtype=object)
+    lats = np.column_stack([
+        airport_lookup.loc[origins, "latitude"].to_numpy(),
+        airport_lookup.loc[destinations, "latitude"].to_numpy(),
+        separators,
+    ]).ravel().tolist()
+    lons = np.column_stack([
+        airport_lookup.loc[origins, "longitude"].to_numpy(),
+        airport_lookup.loc[destinations, "longitude"].to_numpy(),
+        separators,
+    ]).ravel().tolist()
 
     fig.add_trace(
         go.Scattergeo(
@@ -321,15 +333,58 @@ def _render_exposure_outputs(exposure_df: pd.DataFrame) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Internal: run and push an airport removal scenario
+# ---------------------------------------------------------------------------
+
+def _run_airport_scenario(
+    airports_geo: pd.DataFrame,
+    airport_id: int,
+    config: Any,
+) -> None:
+    """Execute an airport removal, push to history, and update session state."""
+    try:
+        scenario_row, exp_df = run_ui_scenario(
+            scenario_type="airport_removal",
+            payload={"airport_id": airport_id},
+            config=config,
+        )
+    except Exception as exc:  # pragma: no cover
+        st.error(f"Scenario run failed: {exc}")
+        return
+
+    airport_row = airports_geo.loc[airports_geo["airport_id"] == airport_id]
+    label = (
+        f"{airport_row.iloc[0]['iata_code']} — {airport_row.iloc[0]['airport_name']}"
+        if not airport_row.empty
+        else f"Airport ID {airport_id}"
+    )
+    entry: dict[str, Any] = {
+        "airport_id": airport_id,
+        "label": label,
+        "scenario_type": "airport",
+        "scenario_row": scenario_row,
+        "exposure_df": exp_df,
+    }
+    _push_history(entry)
+    st.session_state[_SS_AIRPORT] = airport_id
+    st.session_state[_SS_TYPE] = "airport"
+    st.session_state[_SS_RESULT] = {"scenario_row": scenario_row, "exposure_df": exp_df}
+
+
+# ---------------------------------------------------------------------------
 # Page entry point
 # ---------------------------------------------------------------------------
 
 def render_scenario_editor_page() -> None:
     """Render APP-06 scenario editor with interactive map, history, and revert support."""
     config = load_app_config()
-    airports_geo = load_airports_geo(config)
-    edges_df = load_edges(config)
-    route_pairs = list_route_pairs(config)
+    try:
+        airports_geo = load_airports_geo(config)
+        edges_df = load_edges(config)
+        route_pairs = list_route_pairs(config)
+    except ValueError as exc:
+        st.error(f"Unable to load scenario artifacts: {exc}")
+        return
 
     st.title("Scenario Editor")
     st.caption(
@@ -349,10 +404,13 @@ def render_scenario_editor_page() -> None:
     col_search, col_slider = st.columns([2, 3])
 
     with col_search:
+        geo_labeled = airports_geo.dropna(subset=["latitude", "longitude"])
         airport_options = sorted(
-            airports_geo.dropna(subset=["latitude", "longitude"])
-            .apply(lambda r: f"{r['iata_code']} — {r['airport_name']}", axis=1)
-            .tolist()
+            (
+                geo_labeled["iata_code"].astype(str)
+                + " — "
+                + geo_labeled["airport_name"].astype(str)
+            ).tolist()
         )
         search_label = st.selectbox(
             "Quick-find airport",
@@ -486,7 +544,9 @@ def render_scenario_editor_page() -> None:
     # ----------------------------------------------------------------
     # Simulation results
     # ----------------------------------------------------------------
-    result = st.session_state.get(_SS_RESULT)
+    # ``result`` read at the top of the render is still current: every mutation
+    # path (map click, quick-find, undo, restore, history load, route form)
+    # calls st.rerun() before reaching here, so no late re-fetch is needed.
     if result:
         _render_metric_cards(result["scenario_row"])
 
@@ -541,42 +601,3 @@ def render_scenario_editor_page() -> None:
 
     if not result:
         st.info("Click an airport on the map, use quick-find, or submit a route removal to run a simulation.")
-
-
-# ---------------------------------------------------------------------------
-# Internal: run and push an airport removal scenario
-# ---------------------------------------------------------------------------
-
-def _run_airport_scenario(
-    airports_geo: pd.DataFrame,
-    airport_id: int,
-    config: Any,
-) -> None:
-    """Execute an airport removal, push to history, and update session state."""
-    try:
-        scenario_row, exp_df = run_ui_scenario(
-            scenario_type="airport_removal",
-            payload={"airport_id": airport_id},
-            config=config,
-        )
-    except Exception as exc:  # pragma: no cover
-        st.error(f"Scenario run failed: {exc}")
-        return
-
-    airport_row = airports_geo.loc[airports_geo["airport_id"] == airport_id]
-    label = (
-        f"{airport_row.iloc[0]['iata_code']} \u2014 {airport_row.iloc[0]['airport_name']}"
-        if not airport_row.empty
-        else f"Airport ID {airport_id}"
-    )
-    entry: dict[str, Any] = {
-        "airport_id": airport_id,
-        "label": label,
-        "scenario_type": "airport",
-        "scenario_row": scenario_row,
-        "exposure_df": exp_df,
-    }
-    _push_history(entry)
-    st.session_state[_SS_AIRPORT] = airport_id
-    st.session_state[_SS_TYPE] = "airport"
-    st.session_state[_SS_RESULT] = {"scenario_row": scenario_row, "exposure_df": exp_df}

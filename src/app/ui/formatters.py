@@ -4,13 +4,21 @@ from __future__ import annotations
 
 import math
 
+import pandas as pd
+
 
 def _is_missing(value: object) -> bool:
     if value is None:
         return True
     if isinstance(value, float):
         return math.isnan(value)
-    return False
+    # Catches pandas missing scalars (pd.NA, pd.NaT) that would otherwise raise
+    # TypeError in the float()/int() casts below. Guard against non-scalar inputs
+    # where pd.isna returns an array (ambiguous truth value).
+    try:
+        return bool(pd.isna(value))
+    except (TypeError, ValueError):
+        return False
 
 
 def format_percent(value: object, digits: int = 1) -> str:

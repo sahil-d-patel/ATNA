@@ -9,6 +9,7 @@ from app.data_loader import load_communities, load_metrics
 from app.ui.components import show_dataframe_safe, show_empty_state, show_metric_card, show_table_count
 from app.ui.formatters import format_integer, format_percent, format_score
 
+
 def _community_options(communities_df: pd.DataFrame) -> list[str]:
     community_ids = sorted(communities_df["leiden_community_id"].astype(int).unique().tolist())
     return ["All communities", *[str(cid) for cid in community_ids]]
@@ -37,7 +38,7 @@ def _split_ranked_ids(raw_ids: object) -> str:
 
 def render_communities_page() -> None:
     """Render APP-04 communities analysis."""
-    st.title("APP-04 Communities")
+    st.title("Communities")
     st.caption("Explore Leiden partitions, community-level structure, and top members by hub/bridge role.")
 
     try:

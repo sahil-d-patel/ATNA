@@ -21,19 +21,24 @@ def _top_rankings(metrics_df: pd.DataFrame, column: str, limit: int) -> pd.DataF
     ranked[column] = ranked[column].map(lambda value: format_score(value, digits=3))
     return ranked
 
+
 def render_overview_page() -> None:
     """Render APP-01 overview dashboard."""
     config = load_app_config()
-    metrics_df = load_metrics(config)
-    nodes_df = load_nodes(config)
-    route_metrics_df = load_route_metrics(config)
+    try:
+        metrics_df = load_metrics(config)
+        nodes_df = load_nodes(config)
+        route_metrics_df = load_route_metrics(config)
+    except ValueError as exc:
+        st.error(f"Unable to load overview artifacts: {exc}")
+        return
 
     airport_count = int(metrics_df["airport_id"].nunique())
     route_count = int(route_metrics_df.shape[0])
     total_flights = int(nodes_df["flights_out"].sum())
     total_analysis_weight = float(route_metrics_df["analysis_weight"].sum())
 
-    st.title("APP-01 Overview")
+    st.title("Overview")
     st.caption(
         f"Snapshot `{config.snapshot_id}` with {format_integer(airport_count)} airports "
         f"and {format_integer(route_count)} directed routes."
