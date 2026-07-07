@@ -1,0 +1,45 @@
+[project]
+name = "atna"
+version = "1.0.0"
+description = "Air Traffic Network Analysis — structural criticality and scenario modeling for the U.S. domestic flight network"
+readme = "README.md"
+requires-python = ">=3.10"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+src = ["src", "tests", "scripts"]
+exclude = [".venv", "data", "outputs", "notebooks", ".planning", ".pres"]
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "F",    # pyflakes
+    "I",    # import sorting
+    "UP",   # pyupgrade
+    "B",    # bugbear
+    "C4",   # comprehensions
+    "SIM",  # simplify
+    "RUF",  # ruff-specific
+]
+ignore = [
+    "E501",    # line length is enforced by the formatter, not the linter
+    "B008",    # function calls in argument defaults (not a pattern used here)
+    "SIM108",  # ternaries are not always clearer than if/else
+    "RUF002",  # en dashes in prose docstrings are deliberate (spec §7.6–§7.7, 0–100)
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Re-exports exist to define the package surface, not to be used inside __init__.
+"src/*/__init__.py" = ["F401"]
+# Streamlit entrypoints bootstrap sys.path before importing first-party modules.
+"src/app/streamlit_app.py" = ["E402"]
+"src/app/pages/*.py" = ["E402"]
+"scripts/demo/generate_demo_data.py" = ["E402"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app", "etl", "metrics", "scenarios"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
