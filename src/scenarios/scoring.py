@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import math
-from typing import Mapping
+from collections.abc import Mapping
 
 import networkx as nx
 
@@ -16,11 +16,41 @@ def largest_weakly_connected_component_size(graph: nx.DiGraph) -> int:
 
 
 def reachable_pairs_count(graph: nx.DiGraph) -> int:
-    """Count reachable ordered pairs (excluding self pairs) on directed graph."""
+    """Count reachable ordered pairs (excluding self pairs) on directed graph.
+
+    Every node inside a strongly connected component reaches exactly the same set of
+    nodes, so the count is derived from the SCC condensation instead of a breadth-first
+    sweep per node: one ``O(V + E)`` Tarjan pass plus a reverse-topological bitset union
+    over the condensation DAG, rather than ``V`` traversals of the whole graph. The
+    result is identical to the per-node definition; only the cost changes.
+    """
+    if graph.number_of_nodes() == 0:
+        return 0
+
+    condensation = nx.condensation(graph)
+    component_size = [0] * condensation.number_of_nodes()
+    for component_id, members in condensation.nodes(data="members"):
+        component_size[component_id] = len(members)
+
+    # reachable_mask[c] has bit d set when component d is reachable from component c.
+    # Successors are finalized before their predecessors, so each mask is one OR pass.
+    reachable_mask = [0] * condensation.number_of_nodes()
+    for component_id in reversed(list(nx.topological_sort(condensation))):
+        mask = 1 << component_id
+        for successor in condensation.successors(component_id):
+            mask |= reachable_mask[successor]
+        reachable_mask[component_id] = mask
+
     total = 0
-    for node in graph.nodes():
-        reachable = nx.single_source_shortest_path_length(graph, node)
-        total += max(len(reachable) - 1, 0)
+    for component_id, mask in enumerate(reachable_mask):
+        reached_nodes = 0
+        remaining = mask
+        while remaining:
+            lowest_bit = remaining & -remaining
+            reached_nodes += component_size[lowest_bit.bit_length() - 1]
+            remaining ^= lowest_bit
+        # Each member reaches every node in the union, minus itself.
+        total += component_size[component_id] * (reached_nodes - 1)
     return int(total)
 
 
