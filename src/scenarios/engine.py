@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections.abc import Mapping
 from datetime import datetime, timezone
-from typing import Any, Mapping
+from typing import Any
 
 import networkx as nx
 
@@ -23,13 +24,15 @@ def run_scenario(
     payload: Mapping[str, Any],
     created_at: str | None = None,
     precomputed_shares: Mapping[int, Mapping[int, float]] | None = None,
+    precomputed_dependency: Mapping[int, Mapping[int, float]] | None = None,
     pre_reachable_pairs: int | None = None,
 ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     """Run one scenario end-to-end and return normalized scenario and exposure rows.
 
-    ``precomputed_shares`` and ``pre_reachable_pairs`` let batch callers reuse the
-    normalized neighbor shares and reachable-pair count of the unchanged baseline
-    graph across many scenarios; both default to ``None`` for identical single-run
+    ``precomputed_shares``, ``precomputed_dependency``, and ``pre_reachable_pairs``
+    let repeat callers reuse quantities derived solely from the unchanged baseline
+    graph — normalized neighbor shares, undirected dependency weights, and the
+    baseline reachable-pair count. All default to ``None`` for identical single-run
     behavior.
     """
     if not isinstance(baseline_graph, nx.DiGraph):
@@ -39,9 +42,14 @@ def run_scenario(
     if not isinstance(payload, Mapping):
         raise TypeError("payload must be a mapping")
 
+    # ``post_graph`` is scored and discarded inside this function — it is never mutated
+    # and never returned — so a read-only view is sufficient and avoids copying the
+    # full baseline adjacency once per scenario.
     scenario_enum = ScenarioType(str(scenario_type))
     if scenario_enum is ScenarioType.AIRPORT_REMOVAL:
-        post_graph, edit = remove_airport(baseline_graph, payload, snapshot_id=snapshot_id)
+        post_graph, edit = remove_airport(
+            baseline_graph, payload, snapshot_id=snapshot_id, copy=False
+        )
         exposure_by_airport = airport_removal_exposure(
             baseline_graph,
             removed_airport_id=int(edit.removed_airport_id),
@@ -50,11 +58,14 @@ def run_scenario(
         edited_airports = [int(edit.removed_airport_id)]
         edited_routes: list[dict[str, int]] = []
     else:
-        post_graph, edit = remove_route(baseline_graph, payload, snapshot_id=snapshot_id)
+        post_graph, edit = remove_route(
+            baseline_graph, payload, snapshot_id=snapshot_id, copy=False
+        )
         exposure_by_airport = route_removal_exposure(
             baseline_graph,
             origin_id=int(edit.removed_origin_id),
             destination_id=int(edit.removed_destination_id),
+            precomputed_dependency=precomputed_dependency,
         )
         edited_airports = []
         edited_routes = [
@@ -106,7 +117,7 @@ def make_scenario_id(
     """Return deterministic scenario id based on snapshot/type/payload."""
     canonical = json.dumps(dict(payload), sort_keys=True, separators=(",", ":"))
     digest = hashlib.sha256(
-        f"{snapshot_id}|{scenario_type}|{canonical}".encode("utf-8")
+        f"{snapshot_id}|{scenario_type}|{canonical}".encode()
     ).hexdigest()
     return f"scn_{digest[:16]}"
 

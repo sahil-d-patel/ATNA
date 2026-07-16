@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Mapping
+from collections.abc import Mapping
 
 import networkx as nx
 
@@ -73,9 +73,17 @@ def route_removal_exposure(
     destination_id: int,
     *,
     lambda_discount: float = LAMBDA_DISCOUNT,
+    precomputed_dependency: Mapping[int, Mapping[int, float]] | None = None,
 ) -> dict[int, dict[str, float | int]]:
-    """Compute 2-hop exposure after removing a route using endpoint 50/50 seeding."""
-    dependency = build_dependency_weights(graph)
+    """Compute 2-hop exposure after removing a route using endpoint 50/50 seeding.
+
+    ``precomputed_dependency`` lets repeat callers pass the undirected dependency
+    weights of the (unchanged) baseline graph instead of rebuilding them per route;
+    ``None`` recomputes from ``graph`` for identical standalone behavior.
+    """
+    dependency = (
+        build_dependency_weights(graph) if precomputed_dependency is None else precomputed_dependency
+    )
     shares = normalize_neighbor_shares(dependency)
 
     route_weight = float(dependency.get(int(origin_id), {}).get(int(destination_id), 0.0))

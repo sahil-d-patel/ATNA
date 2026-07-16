@@ -1,8 +1,15 @@
-"""Immutable graph edit primitives for scenario execution."""
+"""Immutable graph edit primitives for scenario execution.
+
+Both primitives default to returning a detached copy the caller may freely mutate.
+Callers that only read the edited graph can pass ``copy=False`` to get a read-only
+``restricted_view`` instead, which skips the ``O(V + E)`` duplication of the baseline
+adjacency. The two modes are structurally identical for every read operation.
+"""
 
 from __future__ import annotations
 
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 import networkx as nx
 
@@ -19,8 +26,15 @@ def remove_airport(
     payload: Mapping[str, Any],
     *,
     snapshot_id: str | None = None,
+    copy: bool = True,
 ) -> tuple[nx.DiGraph, ScenarioEditResult]:
-    """Return a copied graph with one airport removed."""
+    """Return a graph with one airport removed.
+
+    Args:
+        copy: ``True`` (default) returns an independent, mutable copy. ``False``
+            returns a read-only view over ``baseline_graph`` with the airport and its
+            incident edges hidden — same reads, no adjacency duplication.
+    """
     if not isinstance(baseline_graph, nx.DiGraph):
         raise TypeError("baseline_graph must be a networkx.DiGraph")
     if not isinstance(payload, Mapping):
@@ -33,8 +47,11 @@ def remove_airport(
     if not baseline_graph.has_node(airport.airport_id):
         raise ValueError(f"airport_id {airport.airport_id} does not exist in baseline graph")
 
-    edited = baseline_graph.copy()
-    edited.remove_node(airport.airport_id)
+    if copy:
+        edited = baseline_graph.copy()
+        edited.remove_node(airport.airport_id)
+    else:
+        edited = nx.restricted_view(baseline_graph, [airport.airport_id], [])
     metadata = ScenarioEditResult(
         scenario_type=ScenarioType.AIRPORT_REMOVAL,
         snapshot_id=snapshot_id,
@@ -50,8 +67,15 @@ def remove_route(
     payload: Mapping[str, Any],
     *,
     snapshot_id: str | None = None,
+    copy: bool = True,
 ) -> tuple[nx.DiGraph, ScenarioEditResult]:
-    """Return a copied graph with one directed route removed."""
+    """Return a graph with one directed route removed.
+
+    Args:
+        copy: ``True`` (default) returns an independent, mutable copy. ``False``
+            returns a read-only view over ``baseline_graph`` with the single directed
+            edge hidden — same reads, no adjacency duplication.
+    """
     if not isinstance(baseline_graph, nx.DiGraph):
         raise TypeError("baseline_graph must be a networkx.DiGraph")
     if not isinstance(payload, Mapping):
@@ -72,8 +96,13 @@ def remove_route(
             f"route ({route.origin_id} -> {route.destination_id}) does not exist in baseline graph"
         )
 
-    edited = baseline_graph.copy()
-    edited.remove_edge(route.origin_id, route.destination_id)
+    if copy:
+        edited = baseline_graph.copy()
+        edited.remove_edge(route.origin_id, route.destination_id)
+    else:
+        edited = nx.restricted_view(
+            baseline_graph, [], [(route.origin_id, route.destination_id)]
+        )
     metadata = ScenarioEditResult(
         scenario_type=ScenarioType.ROUTE_REMOVAL,
         snapshot_id=snapshot_id,
