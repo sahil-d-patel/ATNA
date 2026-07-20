@@ -118,6 +118,10 @@ def write_nodes_csv(cfg: AtnaConfig, df: pd.DataFrame | None = None) -> Path:
     return path
 
 
-def build_nodes(cfg: AtnaConfig) -> Path:
-    """Build and write ``nodes.csv``; returns output path."""
-    return write_nodes_csv(cfg)
+def build_nodes(cfg: AtnaConfig, edges: pd.DataFrame | None = None) -> Path:
+    """Build and write ``nodes.csv``; returns output path.
+
+    ``edges`` lets a full pipeline run reuse the frame it just wrote instead of
+    re-reading ``edges.csv`` straight back off disk.
+    """
+    return write_nodes_csv(cfg, build_nodes_table(cfg, edges=edges))

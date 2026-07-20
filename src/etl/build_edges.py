@@ -63,7 +63,11 @@ def _aggregate_t100_routes(t100_us: pd.DataFrame) -> pd.DataFrame:
     return g
 
 
-def build_edges_table(cfg: AtnaConfig, master: pd.DataFrame | None = None) -> pd.DataFrame:
+def build_edges_table(
+    cfg: AtnaConfig,
+    master: pd.DataFrame | None = None,
+    on_time_us: pd.DataFrame | None = None,
+) -> pd.DataFrame:
     """Directed edges for the snapshot: on-time ops + T-100 passenger/seat totals.
 
     Args:
@@ -71,10 +75,14 @@ def build_edges_table(cfg: AtnaConfig, master: pd.DataFrame | None = None) -> pd
         master: Pre-loaded master coordinate table; loaded internally when ``None``.
             Callers building multiple tables per run can pass a shared load to
             avoid re-parsing the master CSV.
+        on_time_us: Pre-loaded U.S. domestic on-time frame; loaded internally when
+            ``None``. Shared with the airports builder during a full pipeline run so
+            the largest raw extract is parsed once.
     """
     if master is None:
         master = load_master(cfg)
-    on_time_us = load_on_time_us_domestic(cfg, master=master)
+    if on_time_us is None:
+        on_time_us = load_on_time_us_domestic(cfg, master=master)
     cancelled = pd.to_numeric(on_time_us["CANCELLED"], errors="coerce").fillna(1)
     completed = on_time_us[cancelled == 0].copy()
     if completed.empty:

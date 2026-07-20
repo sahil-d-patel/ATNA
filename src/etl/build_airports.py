@@ -31,7 +31,11 @@ def airport_ids_in_mvp_slice(on_time_us: pd.DataFrame) -> set[int]:
     return set(o.astype(int).unique()) | set(d.astype(int).unique())
 
 
-def build_airports_table(cfg: AtnaConfig, master: pd.DataFrame | None = None) -> pd.DataFrame:
+def build_airports_table(
+    cfg: AtnaConfig,
+    master: pd.DataFrame | None = None,
+    on_time_us: pd.DataFrame | None = None,
+) -> pd.DataFrame:
     """Return §6.1 columns for airports appearing in the U.S. domestic MVP slice.
 
     Args:
@@ -39,10 +43,14 @@ def build_airports_table(cfg: AtnaConfig, master: pd.DataFrame | None = None) ->
         master: Pre-loaded master coordinate table; loaded internally when ``None``.
             Callers building multiple tables per run can pass a shared load to
             avoid re-parsing the master CSV.
+        on_time_us: Pre-loaded U.S. domestic on-time frame; loaded internally when
+            ``None``. The on-time extract is the largest raw input, so a full
+            pipeline run shares one parse across the airports and edges builders.
     """
     if master is None:
         master = load_master(cfg)
-    on_time_us = load_on_time_us_domestic(cfg, master=master)
+    if on_time_us is None:
+        on_time_us = load_on_time_us_domestic(cfg, master=master)
     ids = airport_ids_in_mvp_slice(on_time_us)
     sub = master[master["AIRPORT_ID"].isin(ids)].copy()
     if sub.empty:
