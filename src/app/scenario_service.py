@@ -13,6 +13,8 @@ from app.streamlit_compat import st
 from metrics.graph_builder import build_analysis_graph
 from scenarios.engine import run_scenario
 from scenarios.models import ScenarioType
+from scenarios.ripple import build_dependency_weights, normalize_neighbor_shares
+from scenarios.scoring import reachable_pairs_count
 
 
 @st.cache_resource(show_spinner=False)
@@ -22,11 +24,31 @@ def _build_baseline_graph_cached(
     """Build and cache the baseline DiGraph for one snapshot.
 
     ``_edges_df`` is underscore-prefixed so Streamlit skips hashing the frame; the
-    cache key is ``(snapshot_id, edges_csv)``. The scenario engine copies the graph
-    before every edit (see ``scenarios.graph_edits``), so the cached instance is
-    never mutated and can be shared safely across reruns.
+    cache key is ``(snapshot_id, edges_csv)``. The scenario engine only ever reads the
+    baseline — edits are applied as read-only ``restricted_view`` overlays (see
+    ``scenarios.graph_edits``) — so the cached instance is never mutated and can be
+    shared safely across reruns.
     """
     return build_analysis_graph(_edges_df)
+
+
+@st.cache_resource(show_spinner=False)
+def _baseline_invariants_cached(
+    snapshot_id: str, edges_csv: str, _graph: nx.DiGraph
+) -> tuple[dict[int, dict[int, float]], dict[int, dict[int, float]], int]:
+    """Cache the baseline-only inputs every scenario would otherwise re-derive.
+
+    Normalized neighbor shares and the baseline reachable-pair count depend solely on
+    the unchanged baseline graph, so recomputing them per click makes every scenario
+    pay a full dependency rebuild plus an SCC pass before any scenario-specific work
+    starts. They are cached alongside the graph and reused for every UI scenario.
+    """
+    dependency = build_dependency_weights(_graph)
+    return (
+        dependency,
+        normalize_neighbor_shares(dependency),
+        reachable_pairs_count(_graph),
+    )
 
 
 def load_baseline_graph(config: AppConfig | None = None) -> nx.DiGraph:
@@ -57,6 +79,9 @@ def run_ui_scenario(
     """Validate UI payload and run canonical scenario engine."""
     cfg = config if config is not None else load_app_config()
     graph = load_baseline_graph(cfg)
+    dependency, shares, pre_reachable_pairs = _baseline_invariants_cached(
+        cfg.snapshot_id, str(cfg.edges_csv), graph
+    )
     normalized_type = ScenarioType(str(scenario_type))
     normalized_payload = _normalize_payload(normalized_type, payload)
     scenario_row, exposure_rows = run_scenario(
@@ -64,6 +89,9 @@ def run_ui_scenario(
         snapshot_id=cfg.snapshot_id,
         scenario_type=normalized_type.value,
         payload=normalized_payload,
+        precomputed_shares=shares,
+        precomputed_dependency=dependency,
+        pre_reachable_pairs=pre_reachable_pairs,
     )
     exposure_df = pd.DataFrame(exposure_rows)
     if not exposure_df.empty:
