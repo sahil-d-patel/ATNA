@@ -47,6 +47,14 @@ def compute_eigenvector(G: nx.DiGraph) -> pd.Series:
     try:
         ec = nx.eigenvector_centrality_numpy(G, weight="weight")
         return pd.Series(ec, dtype=float).reindex(nodes)
-    except Exception as exc:  # noqa: BLE001 — spec: never crash; return NaNs
-        logger.debug("eigenvector_centrality_numpy failed: %s", exc)
+    except Exception as exc:
+        # Spec §7.4 keeps eigenvector as a secondary metric and tolerates an all-NaN
+        # column, but a silent debug line makes an entirely empty column in metrics.csv
+        # look like a data problem. Warn so the cause is visible in pipeline output.
+        logger.warning(
+            "eigenvector centrality unavailable for this snapshot (%s); "
+            "the eigenvector column will be empty. This is expected when the directed "
+            "graph is not strongly connected.",
+            exc,
+        )
         return pd.Series(np.nan, index=nodes, dtype=float)
