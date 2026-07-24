@@ -206,11 +206,24 @@ def _load_airports_geo_cached(snapshot_id: str, master_csv: str, metrics_csv: st
     master_path = Path(master_csv)
     if not master_path.is_file():
         raise ValueError(f"Master airport reference not found: {master_path}")
-    master = pd.read_csv(master_path, low_memory=False)
-    master = master.loc[
-        master["AIRPORT_IS_LATEST"] == 1,
-        ["AIRPORT_ID", "AIRPORT", "DISPLAY_AIRPORT_NAME", "LATITUDE", "LONGITUDE"],
-    ].copy()
+    # Only the columns the map needs — the real master file is wide and mostly unused here.
+    master_columns = [
+        "AIRPORT_IS_LATEST",
+        "AIRPORT_ID",
+        "AIRPORT",
+        "DISPLAY_AIRPORT_NAME",
+        "LATITUDE",
+        "LONGITUDE",
+    ]
+    header = pd.read_csv(master_path, nrows=0)
+    missing = [column for column in master_columns if column not in header.columns]
+    if missing:
+        raise ValueError(
+            f"Master airport reference at {master_path} is missing required columns: "
+            f"{missing}. Re-download it or regenerate the demo dataset."
+        )
+    master = pd.read_csv(master_path, usecols=master_columns, low_memory=False)
+    master = master.loc[master["AIRPORT_IS_LATEST"] == 1].drop(columns="AIRPORT_IS_LATEST")
     master = master.rename(
         columns={
             "AIRPORT_ID": "airport_id",
