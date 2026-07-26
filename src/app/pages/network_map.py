@@ -33,13 +33,16 @@ def _build_plot(edges_df: pd.DataFrame, airport_xy: pd.DataFrame) -> go.Figure:
     line_x = np.column_stack([ox, dx, separators]).ravel().tolist()
     line_y = np.column_stack([oy, dy, separators]).ravel().tolist()
 
+    # Vectorized rounding + astype(str) instead of a per-row lambda: hover text is
+    # rebuilt for every route on each rerun, so Python-level formatting here scales
+    # directly with edge count.
     route_text = (
         origins.astype(int).astype(str) + " -> " + destinations.astype(int).astype(str)
         + "<br>month=" + valid["month"].astype(int).astype(str)
-        + "<br>analysis_weight=" + valid["analysis_weight"].map(lambda v: f"{v:.3f}")
+        + "<br>analysis_weight=" + valid["analysis_weight"].round(3).astype(str)
         + "<br>flight_count=" + valid["flight_count"].astype(int).astype(str)
         + "<br>route_criticality="
-        + valid["route_criticality_score"].map(lambda v: f"{float(v):.3f}")
+        + pd.to_numeric(valid["route_criticality_score"]).round(3).astype(str)
     ).to_numpy(dtype=object)
     blanks = np.full(len(valid), "", dtype=object)
     line_text = np.column_stack([route_text, route_text, blanks]).ravel().tolist()
@@ -61,14 +64,11 @@ def _build_plot(edges_df: pd.DataFrame, airport_xy: pd.DataFrame) -> go.Figure:
             x=airport_xy["hub_score"],
             y=airport_xy["bridge_score"],
             mode="markers",
-            text=[
-                (
-                    f"airport={int(row.airport_id)}<br>"
-                    f"community={int(row.leiden_community_id)}<br>"
-                    f"vulnerability={row.vulnerability_score:.3f}"
-                )
-                for row in airport_xy.itertuples(index=False)
-            ],
+            text=(
+                "airport=" + airport_xy["airport_id"].astype(int).astype(str)
+                + "<br>community=" + airport_xy["leiden_community_id"].astype(int).astype(str)
+                + "<br>vulnerability=" + airport_xy["vulnerability_score"].round(3).astype(str)
+            ),
             hoverinfo="text",
             marker={
                 "size": airport_xy["vulnerability_score"].clip(lower=5) / 4 + 5,
