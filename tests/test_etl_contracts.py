@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 
 from etl.build_airports import AIRPORTS_COLUMNS, build_airports_table
-from etl.build_edges import build_edges_table
+from etl.build_edges import EDGES_COLUMNS, build_edges_table
 from etl.build_nodes import NODES_COLUMNS, build_nodes_table
 
 
@@ -77,5 +77,6 @@ def test_written_csvs_contract_roundtrip(cfg, tmp_path):
     e = pd.read_csv(pe)
     n = pd.read_csv(pn)
     assert list(a.columns) == AIRPORTS_COLUMNS
+    assert list(e.columns) == EDGES_COLUMNS
     assert list(n.columns) == NODES_COLUMNS
     assert len(n) == len(a)
