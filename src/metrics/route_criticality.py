@@ -15,7 +15,6 @@ from metrics.config import MetricsConfig, load_config
 from metrics.graph_builder import load_edges
 from metrics.percentile import percentile_rank_0_100
 
-
 ROUTE_METRICS_COL_ORDER = [
     "snapshot_id",
     "origin_id",

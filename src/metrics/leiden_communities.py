@@ -8,8 +8,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-import pandas as pd
 import networkx as nx
+import pandas as pd
 
 # Serialize lists of airport_ids into a single CSV cell.
 AIRPORT_ID_LIST_DELIM = "|"
@@ -99,8 +99,8 @@ def build_communities_frame(
         comm_to_airports.setdefault(cid, []).append(int(aid))
 
     # Compute internal traffic + internal edge counts on the directed graph.
-    traffic = {cid: 0.0 for cid in comm_to_airports}
-    internal_edges = {cid: 0 for cid in comm_to_airports}
+    traffic = dict.fromkeys(comm_to_airports, 0.0)
+    internal_edges = dict.fromkeys(comm_to_airports, 0)
     for u, v, d in g.edges(data=True):
         cu = int(airport_to_comm[int(u)])
         cv = int(airport_to_comm[int(v)])
@@ -112,7 +112,7 @@ def build_communities_frame(
 
     rows: list[dict[str, object]] = []
     for cid, airports in sorted(comm_to_airports.items(), key=lambda kv: kv[0]):
-        size = int(len(airports))
+        size = len(airports)
         if size < 2:
             density = 0.0
         else:

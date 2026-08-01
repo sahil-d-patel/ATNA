@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pandas as pd
 import networkx as nx
+import pandas as pd
 import pytest
 
-from metrics.leiden_communities import build_communities_frame, compute_leiden_communities
 from metrics.config import load_config
+from metrics.leiden_communities import build_communities_frame, compute_leiden_communities
 from metrics.run_metrics import run
 
 

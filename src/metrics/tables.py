@@ -10,7 +10,6 @@ import pandas as pd
 
 from metrics.config import MetricsConfig, load_config
 
-
 _NODES_REQUIRED = (
     "snapshot_id",
     "airport_id",

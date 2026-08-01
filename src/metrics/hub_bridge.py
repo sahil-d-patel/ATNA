@@ -6,7 +6,6 @@ import pandas as pd
 
 from metrics.percentile import percentile_rank_0_100
 
-
 _REQ_COLS = (
     "airport_id",
     "pagerank",

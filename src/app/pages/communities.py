@@ -6,7 +6,12 @@ import pandas as pd
 import streamlit as st
 
 from app.data_loader import load_communities, load_metrics
-from app.ui.components import show_dataframe_safe, show_empty_state, show_metric_card, show_table_count
+from app.ui.components import (
+    show_dataframe_safe,
+    show_empty_state,
+    show_metric_card,
+    show_table_count,
+)
 from app.ui.formatters import format_integer, format_percent, format_score
 
 

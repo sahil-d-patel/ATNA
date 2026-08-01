@@ -76,7 +76,9 @@ def _canonical_display_labels(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFr
     ).reset_index(drop=True)
     legend["display_rank"] = np.arange(1, len(legend) + 1, dtype=int)
     legend["display_label"] = legend["display_rank"].map(lambda x: f"C{x:02d}")
-    label_map = dict(zip(legend["leiden_community_id"], legend["display_label"]))
+    label_map = dict(
+        zip(legend["leiden_community_id"], legend["display_label"], strict=True)
+    )
     out = df.copy()
     out["display_label"] = out["leiden_community_id"].map(label_map)
     return out, legend
@@ -114,14 +116,14 @@ def _write_validation_metrics(processed_dir: Path, snapshot: str, out_json: Path
         g = build_analysis_graph(edges)
         g.add_nodes_from(nodes["airport_id"].astype(int).tolist())
         assert_metr02_nodes_match_graph(g, nodes)
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         metr02_ok = False
         metr02_message = str(exc)
 
     payload = {
         "snapshot_id": snapshot,
         "airport_count_metrics": int(metrics["airport_id"].nunique()),
-        "route_count": int(len(routes)),
+        "route_count": len(routes),
         "cross_community_route_share": cross_share,
         "cross_community_route_count": int((flags[valid] == 100).sum()) if valid.any() else 0,
         "metr02_reconciliation_passed": metr02_ok,

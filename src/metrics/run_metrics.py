@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pandas as pd
 import networkx as nx
+import pandas as pd
 
 from metrics.centralities import compute_betweenness, compute_eigenvector, compute_pagerank
 from metrics.config import MetricsConfig, load_config
@@ -15,7 +15,6 @@ from metrics.leiden_communities import build_communities_frame, compute_leiden_c
 from metrics.route_criticality import build_route_metrics_frame, write_route_metrics_csv
 from metrics.tables import assert_metr02_nodes_match_graph, load_nodes
 from scenarios.vulnerability import build_vulnerability_scores
-
 
 _METRICS_COL_ORDER = [
     "snapshot_id",
@@ -33,7 +32,7 @@ _METRICS_COL_ORDER = [
 def build_metrics_frame(
     cfg: MetricsConfig,
     *,
-    g: "nx.DiGraph | None" = None,
+    g: nx.DiGraph | None = None,
     nodes_df: pd.DataFrame | None = None,
     edges_df: pd.DataFrame | None = None,
 ) -> pd.DataFrame:
@@ -145,7 +144,13 @@ def run(cfg_or_path: MetricsConfig | Path | str | None = None) -> Path:
     write_metrics_csv(df, cfg.metrics_csv)
 
     # communities.csv rollup (spec §6.5 / §7.9)
-    airport_to_comm = dict(zip(df["airport_id"].astype(int), df["leiden_community_id"].astype(int)))
+    airport_to_comm = dict(
+        zip(
+            df["airport_id"].astype(int),
+            df["leiden_community_id"].astype(int),
+            strict=True,
+        )
+    )
     comm = build_communities_frame(
         snapshot_id=cfg.snapshot_id,
         g=g,

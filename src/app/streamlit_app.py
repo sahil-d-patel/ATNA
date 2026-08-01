@@ -20,7 +20,6 @@ from app.pages.overview import render_overview_page
 from app.pages.route_explorer import render_route_explorer_page
 from app.pages.scenario_editor import render_scenario_editor_page
 
-
 st.set_page_config(
     page_title="ATNA",
     page_icon=":airplane:",

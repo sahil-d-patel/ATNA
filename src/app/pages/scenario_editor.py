@@ -414,7 +414,7 @@ def render_scenario_editor_page() -> None:
         )
         search_label = st.selectbox(
             "Quick-find airport",
-            options=["— search by name or code —"] + airport_options,
+            options=["— search by name or code —", *airport_options],
             index=0,
             help="Type to filter. Select an airport then click Simulate.",
         )
@@ -479,7 +479,7 @@ def render_scenario_editor_page() -> None:
                     f"{severity_label} (impact {impact:.1f})"
                 )
         elif result and st.session_state[_SS_TYPE] == "route":
-            st.info(f"**Route removal simulated.** See results below.")
+            st.info("**Route removal simulated.** See results below.")
         else:
             st.info("No active simulation. Click an airport on the map or use quick-find above.")
 
