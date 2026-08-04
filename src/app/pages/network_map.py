@@ -82,6 +82,9 @@ def _build_plot(edges_df: pd.DataFrame, airport_xy: pd.DataFrame) -> go.Figure:
         )
     )
     fig.update_layout(
+        # Preserve the user's zoom and pan when filters rebuild the figure; without a
+        # stable uirevision every slider nudge snaps the axes back to autorange.
+        uirevision="network-map",
         xaxis_title="Hub score",
         yaxis_title="Bridge score",
         title="Airport network projection (routes + airport risk context)",

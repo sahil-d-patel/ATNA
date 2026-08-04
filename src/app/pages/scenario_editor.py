@@ -21,6 +21,9 @@ _SS_RESULT = "se_result"
 _SS_TYPE = "se_scenario_type"
 _SS_HISTORY = "se_history"
 
+# Cap on retained scenario runs. Each entry carries a full exposure DataFrame.
+_MAX_HISTORY = 25
+
 # Each history entry:
 # {
 #   "airport_id": int | None,
@@ -48,7 +51,16 @@ def _init_state() -> None:
 
 
 def _push_history(entry: dict[str, Any]) -> None:
-    st.session_state[_SS_HISTORY].append(entry)
+    """Append a run to the history, discarding the oldest past ``_MAX_HISTORY``.
+
+    Each entry holds a full exposure DataFrame, so an unbounded list grows session
+    state without limit over a long demo. Undo walks back one entry at a time, so a
+    bounded window keeps every realistic revert available.
+    """
+    history: list[dict[str, Any]] = st.session_state[_SS_HISTORY]
+    history.append(entry)
+    if len(history) > _MAX_HISTORY:
+        del history[: len(history) - _MAX_HISTORY]
 
 
 def _apply_state(entry: dict[str, Any] | None) -> None:
@@ -213,6 +225,11 @@ def _build_geo_map(
             )
 
     fig.update_layout(
+        # Plotly resets camera state whenever a figure is replaced, and this figure is
+        # rebuilt on every rerun. A constant uirevision tells plotly.js to preserve the
+        # user's zoom and pan across those rebuilds, so simulating a removal no longer
+        # throws the map back to the full-country view.
+        uirevision="scenario-editor-map",
         title={
             "text": (
                 "Click any airport to simulate its removal from the network"
