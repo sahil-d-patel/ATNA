@@ -32,7 +32,7 @@ SCENARIO_EXPOSURE_COLUMNS = [
 
 
 def write_scenarios_csv(rows: Sequence[Mapping[str, Any]], path: Path) -> pd.DataFrame:
-    """Write ``scenarios.csv`` using locked column order."""
+    """Write ``scenarios.csv`` using the canonical column order."""
     frame = pd.DataFrame(list(rows))
     _validate_columns(frame, SCENARIOS_COLUMNS, table_name="scenarios.csv")
     frame = frame[SCENARIOS_COLUMNS].copy()
@@ -44,7 +44,7 @@ def write_scenarios_csv(rows: Sequence[Mapping[str, Any]], path: Path) -> pd.Dat
 def write_scenario_exposure_csv(
     rows: Sequence[Mapping[str, Any]], path: Path
 ) -> pd.DataFrame:
-    """Write ``scenario_exposure.csv`` using locked column order."""
+    """Write ``scenario_exposure.csv`` using the canonical column order."""
     frame = pd.DataFrame(list(rows))
     _validate_columns(
         frame, SCENARIO_EXPOSURE_COLUMNS, table_name="scenario_exposure.csv"

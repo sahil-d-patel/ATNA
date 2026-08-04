@@ -54,7 +54,7 @@ def render_methodology_page() -> None:
     st.header("Scenario ripple and aggregate scores")
     st.markdown(
         """
-        Ripple propagation uses a locked 2-hop structural approximation with dependency weight:
+        Ripple propagation uses a 2-hop structural approximation with dependency weight:
         """
     )
     st.latex(r"W(i,j) = w(i,j) + w(j,i)")
@@ -63,7 +63,7 @@ def render_methodology_page() -> None:
     st.latex(r"E2(k \mid r) = \lambda \cdot \sum_j \left[E1(j \mid r)\cdot Share(j,k)\right]")
     st.markdown(
         """
-        Locked constants in implementation:
+        Constants used in the implementation:
         - `Shock(airport removal) = 100`
         - `lambda = 0.35`
         - Hop depth is capped at 2 (hop 3+ ignored)

@@ -108,7 +108,7 @@ def impact_score(
     reachability_loss_value: float,
     ripple_severity_value: float,
 ) -> float:
-    """Compute impact score using locked blend weights."""
+    """Compute impact score using the specified blend weights."""
     score = (
         0.40 * float(lcc_loss_value)
         + 0.30 * float(reachability_loss_value)
@@ -130,7 +130,7 @@ def aggregate_scenario_scores(
     total_airports: int,
     pre_reachable_pairs: int | None = None,
 ) -> dict[str, float]:
-    """Return locked aggregate cards for scenario outputs.
+    """Return the aggregate scorecards for scenario outputs.
 
     ``pre_reachable_pairs`` is threaded to :func:`reachability_loss` so batch
     callers can reuse the baseline reachable-pair count across scenarios that
