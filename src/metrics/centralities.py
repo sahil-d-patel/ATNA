@@ -7,8 +7,47 @@ import logging
 import networkx as nx
 import numpy as np
 import pandas as pd
+import scipy.linalg
+import scipy.sparse.linalg
 
 logger = logging.getLogger(__name__)
+
+
+def _eigenvector_centrality_deterministic(
+    G: nx.DiGraph, *, weight: str = "weight", max_iter: int = 50, tol: float = 0.0
+) -> dict[int, float]:
+    """``nx.eigenvector_centrality_numpy`` with a pinned ARPACK start vector.
+
+    NetworkX calls ``scipy.sparse.linalg.eigs`` without ``v0``, so ARPACK chooses a
+    random starting residual and successive runs disagree in the last few units in the
+    last place. That was enough to make ``metrics.csv`` fail to reproduce byte for byte
+    between two runs over identical inputs, which undermines the snapshot model.
+
+    Fixing ``v0`` to a constant vector makes the result deterministic. The mathematics
+    is otherwise identical to the NetworkX implementation, including the sign and norm
+    convention applied to the recovered eigenvector.
+    """
+    if len(G) == 0:
+        raise nx.NetworkXPointlessConcept("cannot compute centrality for the null graph")
+    if not nx.is_strongly_connected(G):
+        raise nx.AmbiguousSolution(
+            "eigenvector centrality is not well defined for a graph that is not "
+            "strongly connected"
+        )
+
+    nodelist = list(G)
+    matrix = nx.to_scipy_sparse_array(G, nodelist=nodelist, weight=weight, dtype=float)
+    _, eigenvector = scipy.sparse.linalg.eigs(
+        matrix.T,
+        k=1,
+        which="LR",
+        maxiter=max_iter,
+        tol=tol,
+        v0=np.ones(matrix.shape[0], dtype=float),
+    )
+    largest = eigenvector.flatten().real
+    norm = float(np.sign(largest.sum()) * scipy.linalg.norm(largest))
+    return dict(zip(nodelist, (largest / norm).tolist(), strict=True))
 
 
 def compute_pagerank(G: nx.DiGraph) -> pd.Series:
@@ -45,7 +84,7 @@ def compute_eigenvector(G: nx.DiGraph) -> pd.Series:
     if not nodes:
         return pd.Series(dtype=float)
     try:
-        ec = nx.eigenvector_centrality_numpy(G, weight="weight")
+        ec = _eigenvector_centrality_deterministic(G, weight="weight")
         return pd.Series(ec, dtype=float).reindex(nodes)
     except Exception as exc:
         # Spec §7.4 keeps eigenvector as a secondary metric and tolerates an all-NaN

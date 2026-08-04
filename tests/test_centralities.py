@@ -72,3 +72,44 @@ def test_optional_real_snapshot_graph():
     assert np.isfinite(pr.sum())
     _ = compute_eigenvector(g)
 
+
+
+def test_eigenvector_is_bitwise_reproducible_across_calls():
+    """Repeated calls on the same graph must return bit-identical values.
+
+    NetworkX computes eigenvector centrality through ARPACK without pinning the
+    starting residual vector, so successive runs differed in the last few ulps. That
+    was enough to make metrics.csv fail to reproduce byte for byte over identical
+    inputs, which defeats the point of a frozen snapshot.
+    """
+    graph = _toy_digraph()
+    first = compute_eigenvector(graph)
+    for _ in range(4):
+        repeat = compute_eigenvector(graph)
+        assert list(repeat.index) == list(first.index)
+        # Exact equality, not approximate: reproducibility is the property under test.
+        assert repeat.to_numpy().tolist() == first.to_numpy().tolist()
+
+
+def test_eigenvector_matches_networkx_reference():
+    """The pinned start vector must not change the answer, only its stability."""
+    graph = _toy_digraph()
+    if not nx.is_strongly_connected(graph):
+        pytest.skip("reference implementation rejects graphs that are not strongly connected")
+
+    reference = pd.Series(nx.eigenvector_centrality_numpy(graph, weight="weight"), dtype=float)
+    ours = compute_eigenvector(graph)
+    np.testing.assert_allclose(
+        ours.reindex(sorted(graph.nodes())).to_numpy(),
+        reference.reindex(sorted(graph.nodes())).to_numpy(),
+        atol=1e-12,
+    )
+
+
+def test_eigenvector_returns_nan_when_not_strongly_connected():
+    """Spec §7.4 treats eigenvector as secondary; an unusable graph yields an empty column."""
+    graph = nx.DiGraph()
+    graph.add_edge(1, 2, weight=1.0)  # no path back from 2 to 1
+    result = compute_eigenvector(graph)
+    assert list(result.index) == [1, 2]
+    assert result.isna().all()
