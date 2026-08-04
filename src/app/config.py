@@ -10,6 +10,8 @@ from typing import Any
 
 import yaml
 
+from app.streamlit_compat import st
+
 # Repository root (src/app/config.py -> parents[2])
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_CONFIG_PATH = REPO_ROOT / "config" / "atna.yaml"
@@ -54,11 +56,24 @@ def _require_template(section: Mapping[str, Any], key: str, context: Mapping[str
 
 
 def load_app_config(path: Path | str | None = None) -> AppConfig:
-    """Load app artifact config from ``config/atna.yaml``."""
+    """Load app artifact config from ``config/atna.yaml``.
+
+    Every page calls this on every rerun, so the parsed result is cached. The cache
+    key includes the file's modification time, which keeps an edit to ``atna.yaml``
+    (for example bumping ``snapshot_id``) effective without restarting the server.
+    """
     config_path = Path(path) if path is not None else DEFAULT_CONFIG_PATH
     config_path = config_path.resolve()
     if not config_path.is_file():
         raise FileNotFoundError(f"Config not found: {config_path}")
+
+    return _load_app_config_cached(str(config_path), config_path.stat().st_mtime_ns)
+
+
+@st.cache_resource(show_spinner=False)
+def _load_app_config_cached(config_path_str: str, _mtime_ns: int) -> AppConfig:
+    """Parse and resolve the config. ``AppConfig`` is frozen, so sharing it is safe."""
+    config_path = Path(config_path_str)
 
     with open(config_path, encoding="utf-8") as f:
         data = yaml.safe_load(f)

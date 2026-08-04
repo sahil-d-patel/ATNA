@@ -58,16 +58,34 @@ def load_baseline_graph(config: AppConfig | None = None) -> nx.DiGraph:
     return _build_baseline_graph_cached(cfg.snapshot_id, str(cfg.edges_csv), edges_df)
 
 
+@st.cache_resource(show_spinner=False)
+def _list_airport_ids_cached(snapshot_id: str, edges_csv: str, _graph: nx.DiGraph) -> list[int]:
+    return sorted(int(node) for node in _graph.nodes())
+
+
+@st.cache_resource(show_spinner=False)
+def _list_route_pairs_cached(
+    snapshot_id: str, edges_csv: str, _graph: nx.DiGraph
+) -> list[tuple[int, int]]:
+    return sorted((int(origin), int(destination)) for origin, destination in _graph.edges())
+
+
 def list_airport_ids(config: AppConfig | None = None) -> list[int]:
     """Return sorted airport ids from the canonical baseline graph."""
-    graph = load_baseline_graph(config)
-    return sorted(int(node) for node in graph.nodes())
+    cfg = config if config is not None else load_app_config()
+    graph = load_baseline_graph(cfg)
+    return _list_airport_ids_cached(cfg.snapshot_id, str(cfg.edges_csv), graph)
 
 
 def list_route_pairs(config: AppConfig | None = None) -> list[tuple[int, int]]:
-    """Return sorted directed route pairs from the canonical baseline graph."""
-    graph = load_baseline_graph(config)
-    return sorted((int(origin), int(destination)) for origin, destination in graph.edges())
+    """Return sorted directed route pairs from the canonical baseline graph.
+
+    Cached because the scenario editor rebuilds a selectbox from this on every rerun,
+    and at full BTS scale it is a sort over roughly 15,000 tuples each time.
+    """
+    cfg = config if config is not None else load_app_config()
+    graph = load_baseline_graph(cfg)
+    return _list_route_pairs_cached(cfg.snapshot_id, str(cfg.edges_csv), graph)
 
 
 def run_ui_scenario(
