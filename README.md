@@ -1,204 +1,321 @@
-# ATNA MVP
+<div align="center">
 
-U.S. domestic airport network analysis — monthly snapshots, **AirportID**-keyed graphs, BTS-sourced raw data.
+<img src="organization/logo.png" alt="ATNA" width="140"/>
 
-## Repository layout (spec §4.2)
+# ATNA — Air Traffic Network Analysis
 
-Top-level boundaries follow the locked MVP technical spec:
+![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54)
+![Pandas](https://img.shields.io/badge/pandas-%23150458.svg?style=for-the-badge&logo=pandas&logoColor=white)
+![NumPy](https://img.shields.io/badge/numpy-%23013243.svg?style=for-the-badge&logo=numpy&logoColor=white)
+![SciPy](https://img.shields.io/badge/SciPy-%230C55A5.svg?style=for-the-badge&logo=scipy&logoColor=%23ffffff)
+![Streamlit](https://img.shields.io/badge/Streamlit-%23FE4B4B.svg?style=for-the-badge&logo=streamlit&logoColor=white)
+![Plotly](https://img.shields.io/badge/Plotly-%233F4F75.svg?style=for-the-badge&logo=plotly&logoColor=white)
+![pytest](https://img.shields.io/badge/pytest-%23ffffff.svg?style=for-the-badge&logo=pytest&logoColor=2f9fe3)
 
-| Area | Role |
-|------|------|
-| `data/` | `raw/` immutable inputs, `interim/` scratch transforms, `processed/` canonical tables, `reference/` manifests and notes |
-| `outputs/` | Precomputed artifacts (`figures/`, `tables/`, `scenarios/` as built in later phases) |
-| `notebooks/exploration/` | Ad hoc analysis (not the production pipeline) |
-| `src/` | Library code (`etl/`, and later `graph/`, `metrics/`, etc. per spec) |
-| `docs/specs/` | Pointers to the **locked** specification (see below) |
-| `tests/` | Automated checks for contracts and joins |
-| `requirements.txt` | Pinned Python dependencies |
-| `README.md` | This file |
+**Which airports actually hold the U.S. flight network together — and what breaks when one goes down?**
 
-Scripts that fetch BTS data live under `scripts/download/`; they populate `data/raw/` but are **not** a substitute for ETL: download first, then run transforms that read raw and write interim/processed outputs.
+</div>
 
-## Schema contract (REPO-02)
+**ATNA** turns a month of U.S. Bureau of Transportation Statistics flight records into a directed, weighted airport graph, then scores every airport and route on how structurally load-bearing it is. Remove an airport or a route in the scenario editor and the app recomputes connectivity loss, two-hop ripple exposure, and a network health score — in under a second, against the live graph rather than a precomputed lookup.
 
-Canonical column names, table shapes, metrics definitions, and UI behavior are defined only in the version-controlled **`organization/ATNA_MVP_Technical_Spec_and_Workflow.md`**. A short pointer and rationale live in [`docs/specs/README.md`](docs/specs/README.md). Do not maintain a second, undocumented schema.
+It answers questions a raw traffic table cannot: *Denver and Charlotte move similar passenger volume — so why does removing Charlotte hurt the network more?* Traffic rank and structural importance are different things, and the gap between them is the whole point of the project.
 
-## Raw data policy (DATA-01)
+---
 
-- **`data/raw/` is immutable in place.** Do not silently overwrite an existing raw file with a new fetch.
-- If you need to refresh data, use a **new path**: e.g. a dated subfolder or a filename suffix so prior bytes remain inspectable for reproducibility and audit.
-- The download script writes extracted CSVs to expected paths; treat any re-download as a deliberate replacement only if you have changed paths or explicitly archived the old file.
+## Contents
 
-## Download vs ETL
+- [What it does](#what-it-does) · [Quick start](#quick-start) · [Architecture](#architecture)
+- [Performance](#performance) · [Metrics](#metrics-and-formulas) · [Testing](#testing)
+- [Project structure](#project-structure) · [Commands](#development-commands)
 
-1. **Download** — Populate `data/raw/` (automated script and/or manual steps per `data/reference/` docs). Provenance is tracked via manifests under `data/reference/`.
-2. **ETL** — Python modules under `src/etl/` read raw inputs and write processed tables for the configured snapshot.
+---
 
-### Run the full ETL (airports → edges → nodes)
+## What it does
 
-**Prerequisite:** Raw CSVs exist for the `snapshot_id` in [`config/atna.yaml`](config/atna.yaml) (same layout as the downloader). Use [`scripts/download/verify_downloads.py`](scripts/download/verify_downloads.py) to confirm files before ETL.
+| | |
+|---|---|
+| **Hub scoring** | Blends traffic strength, PageRank, and degree into a single 0–100 percentile score, so a small airport with outsized connectivity is not buried under raw volume. |
+| **Bridge detection** | Ranks airports by betweenness on the inverse-weight graph — the connectors whose loss forces long detours, which traffic rank alone never surfaces. |
+| **Leiden communities** | Partitions the network into regional clusters and flags the cross-community routes that stitch them together. |
+| **Scenario editor** | Remove any airport or route and get connectivity loss, ripple exposure, and network health against the live graph. Every edit is revertible and the history is inspectable. |
+| **Vulnerability index** | Precomputes the impact of removing *each* airport individually, so the whole network can be ranked by fragility rather than probed one guess at a time. |
+| **Route criticality** | Scores every directed route on weight percentile plus a cross-community bonus, ranking the links that carry structural rather than merely heavy load. |
 
-From the repository root, with `src` on `PYTHONPATH`:
+Seven Streamlit pages: Overview, Network Map, Airport Explorer, Communities, Route Explorer, Scenario Editor, and Methodology.
 
-**Windows (PowerShell):**
+---
 
-```powershell
-$env:PYTHONPATH = "src"
-python -m etl.run_pipeline
-```
+## Quick start
 
-**macOS / Linux:**
-
-```bash
-PYTHONPATH=src python -m etl.run_pipeline
-```
-
-Optional custom config:
+**Requires:** Python 3.10+ and git. Nothing else — no database, no API keys, no accounts.
 
 ```bash
-PYTHONPATH=src python -m etl.run_pipeline --config path/to/atna.yaml
+git clone https://github.com/sahil-d-patel/ATNA.git
+cd ATNA
+./setupScripts/setup.sh --demo
+./setupScripts/start.sh
 ```
 
-Outputs: `data/processed/{snapshot_id}/airports.csv`, `edges.csv`, and `nodes.csv` (spec §6.1–§6.3).
+The app opens at [http://localhost:8501](http://localhost:8501).
 
-**Validation / QA notes** — See [`data/reference/validation_notes_mvp.md`](data/reference/validation_notes_mvp.md) for snapshot metadata, exclusion rules, and known BTS quirks. Automated column and join checks live under `tests/test_etl_contracts.py`.
+<details>
+<summary><b>Windows</b></summary>
 
-## Metrics and scenario artifacts
-
-After ETL, `data/processed/{snapshot_id}/` contains `airports.csv`, `edges.csv`, and `nodes.csv`. Build graph metrics and scenario outputs with `snapshot_id` from [`config/atna.yaml`](config/atna.yaml) (paths under `output.*` in that file).
-
-**Windows (PowerShell):**
-
-```powershell
-$env:PYTHONPATH = "src"
-python -m metrics.run_metrics
-python -m scenarios.run_scenarios
+```batch
+git clone https://github.com/sahil-d-patel/ATNA.git
+cd ATNA
+setupScripts\setup.bat --demo
+setupScripts\start.bat
 ```
 
-**macOS / Linux:**
+</details>
+
+`setup.sh` creates the virtualenv, installs dependencies, generates a demo dataset, runs the full pipeline, and executes the test suite. A cold clone reaches a working app in about a minute.
+
+### About the demo dataset
+
+The BTS extracts are large, rate-limited, and not redistributable, so a fresh clone has no data. Rather than leaving the app dead on arrival, `--demo` synthesizes a BTS-shaped dataset that the **unmodified** pipeline consumes exactly like production input.
+
+- **Real:** identifiers, IATA codes, cities, and coordinates for the 50 busiest U.S. airports.
+- **Synthetic:** every flight, passenger, seat, and delay figure — drawn from a gravity model (hub mass over great-circle distance) behind a hub-and-spoke gate, so small airports connect through hubs instead of to each other. Service is decided per unordered pair, because airlines schedule round trips.
+
+The result is a network with genuine structure rather than noise: ~1,280 directed routes carrying ~393,000 flight legs. Leiden recovers four regional communities that line up with real U.S. aviation geography — West (DEN, LAX, LAS, PHX, SEA, SFO), Midwest (ORD, ATL, DTW, MDW, CVG), South (DFW, IAH, MCO, MIA, TPA, FLL), and Northeast (CLT, JFK, BOS, DCA, BWI, IAD) — with ORD and ATL topping the hub rankings. Output is deterministic for a given `--seed`.
+
+### Running on real BTS data
 
 ```bash
-PYTHONPATH=src python -m metrics.run_metrics
-PYTHONPATH=src python -m scenarios.run_scenarios
+./setupScripts/setup.sh --data     # Playwright download from TranStats, then full pipeline
 ```
 
-Writes (per config): `metrics.csv`, `communities.csv`, `route_metrics.csv`, `scenarios.csv`, and `scenario_exposure.csv` under `data/processed/{snapshot_id}/`.
+Downloads on-time performance, T-100 segment, and master coordinate files for the year in [`config/atna.yaml`](config/atna.yaml), then runs ETL → metrics → scenarios. TranStats throttles aggressively; [`scripts/download/MANUAL_BTS_DOWNLOAD.md`](scripts/download/MANUAL_BTS_DOWNLOAD.md) documents the manual fallback.
 
-## Run the Streamlit app
+---
 
-From the repository root, with dependencies installed (`pip install -r requirements.txt`) and artifacts present for the configured `snapshot_id`:
+## Architecture
 
-**Windows (PowerShell):**
+```mermaid
+graph TD
+    subgraph Ingest
+        BTS[BTS TranStats<br/>on-time · T-100 · master coordinate]
+        DEMO[Demo generator<br/>gravity model]
+        BTS --> RAW[(data/raw/<br/>immutable)]
+        DEMO --> RAW
+    end
 
-```powershell
-$env:PYTHONPATH = "src"
-streamlit run src/app/streamlit_app.py
+    subgraph ETL["ETL — pandas"]
+        RAW --> AIRPORTS[airports.csv<br/>U.S. domestic slice]
+        RAW --> EDGES[edges.csv<br/>directed routes<br/>w = log1p flights]
+        EDGES --> NODES[nodes.csv<br/>strength · degree]
+    end
+
+    subgraph Metrics["Metrics — NetworkX + leidenalg"]
+        EDGES --> G{{Directed weighted graph}}
+        G --> CENT[PageRank · Betweenness<br/>Eigenvector]
+        G --> LEIDEN[Leiden partition]
+        CENT --> SCORES[hub_score · bridge_score]
+        LEIDEN --> COMM[communities.csv]
+        SCORES --> ROUTES[route_metrics.csv]
+        LEIDEN --> ROUTES
+    end
+
+    subgraph Scenarios["Scenario engine"]
+        G --> EDIT[Airport / route removal<br/>zero-copy graph views]
+        EDIT --> RIPPLE[Two-hop ripple<br/>lambda = 0.35]
+        EDIT --> CONN[LCC loss · reachability loss<br/>SCC condensation]
+        RIPPLE --> IMPACT[impact_score<br/>network_health]
+        CONN --> IMPACT
+        IMPACT --> VULN[vulnerability_score<br/>per airport]
+    end
+
+    VULN --> METRICS[(metrics.csv)]
+    SCORES --> METRICS
+    IMPACT --> SCEN[(scenarios.csv<br/>scenario_exposure.csv)]
+
+    METRICS --> APP[Streamlit · 7 pages<br/>Plotly maps and charts]
+    COMM --> APP
+    ROUTES --> APP
+    SCEN --> APP
+
+    style G fill:#4c78a8,color:#fff
+    style APP fill:#FE4B4B,color:#fff
+    style RAW fill:#555,color:#fff
+    style METRICS fill:#2d7f5e,color:#fff
+    style SCEN fill:#2d7f5e,color:#fff
 ```
 
-**macOS / Linux:**
+Each stage writes CSV artifacts under `data/processed/{snapshot_id}/` and the next stage reads them. Stages are independently runnable and independently testable, and the app only ever reads artifacts — it never recomputes the pipeline.
+
+---
+
+## Performance
+
+The expensive operation is the **vulnerability batch**: it removes every airport in turn and rescores the whole network each time. That is `N` scenarios over an `N`-node, `E`-edge graph, so naive implementations degrade sharply exactly when the dataset gets interesting.
+
+Measured on a 350-airport / 15,000-route graph — full U.S. domestic BTS scale:
+
+| Stage | Before | After | Speedup |
+|---|---:|---:|---:|
+| `reachable_pairs_count` (single call) | 16.8 ms | 2.3 ms | **7.2×** |
+| Vulnerability batch (350 scenarios) | 9.23 s | 2.61 s | **3.5×** |
+
+### Counting reachable pairs without traversing per node
+
+Reachability loss needs the number of ordered reachable pairs. The direct reading of that definition is a breadth-first sweep from every node — `O(V · (V + E))` per scenario, repeated `N` times.
+
+But every node inside a strongly connected component reaches exactly the same set of nodes. So one Tarjan pass condenses the graph, and a reverse-topological bitset union over the condensation DAG yields the count directly:
+
+```
+reachable_pairs = Σ_C |C| · (nodes reachable from C − 1)
+```
+
+One `O(V + E)` pass replaces `V` full traversals. Verified identical to the per-node count across 300 randomized graphs including empty, single-node, isolated, and fully disconnected cases.
+
+### Removing airports without copying the graph
+
+Each scenario built a full `DiGraph.copy()` to delete one node — duplicating the entire adjacency structure to hide a single vertex, `O(V + E)` per scenario and 72% of remaining runtime after the first fix.
+
+The scored graph is read-only: it is never mutated and never returned. So the engine now uses `nx.restricted_view`, which hides the node in `O(1)` and reads identically. The public `remove_airport` / `remove_route` helpers still return real copies by default (`copy=True`) so external callers keep their mutable-graph contract.
+
+### Invariants hoisted out of the batch loop
+
+Every scenario in the batch removes one airport from the *same* unchanged baseline, so the normalized neighbor shares and the baseline reachable-pair count are loop invariants. Both are computed once and threaded through, rather than re-derived per airport.
+
+> All three changes are structural, not numerical. Artifact values and CSV column order are byte-identical before and after — the locked specification treats both as a contract.
+
+---
+
+## Metrics and formulas
+
+Defined in [`organization/ATNA_MVP_Technical_Spec_and_Workflow.md`](organization/ATNA_MVP_Technical_Spec_and_Workflow.md), which is a **locked contract**: the formulas and CSV column orders below are frozen, and the implementation is tested against them.
+
+`P(·)` is percentile rank scaled to 0–100, which puts otherwise incomparable metrics on one axis.
+
+| Metric | Formula |
+|---|---|
+| Analysis edge weight | `w(i,j) = log(1 + flight_count(i,j))` |
+| Hub score | `0.50·P(strength_total) + 0.30·P(PageRank) + 0.20·P(degree_total)` |
+| Bridge score | `P(betweenness)` on the inverse-weight graph |
+| Vulnerability | `0.60·P(impact of removing i) + 0.40·P(bridge_score)` |
+| Route criticality | `0.70·P(w(i,j)) + 0.30·cross_community_flag` |
+| Impact score | `0.40·lcc_loss + 0.30·reachability_loss + 0.30·ripple_severity` |
+| Network health | `100 − impact_score` |
+| Ripple exposure | Two hops, dependency shares, `λ = 0.35` on the second hop |
+
+Betweenness runs on distance `1/w`: higher traffic means a *shorter* structural distance, since NetworkX treats edge weight additively as cost.
+
+---
+
+## Testing
 
 ```bash
-PYTHONPATH=src streamlit run src/app/streamlit_app.py
+PYTHONPATH=src .venv/bin/python -m pytest tests -q
 ```
 
-Headless regression coverage for all seven pages: `pytest tests/test_streamlit_app_smoke.py -q` (uses Streamlit `AppTest`; allow ~60s per run on cold start). Phase 5 checklist and outcomes: [`data/reference/validation_checklist_phase5.md`](data/reference/validation_checklist_phase5.md).
+**53 tests, all passing, no skips** — roughly 3 seconds end to end.
 
-### Demo sequence (spec §14)
+The suite covers ETL column and join contracts, centrality and hub/bridge math, Leiden partition coverage, route criticality, graph-edit isolation, ripple and scoring formulas, scenario artifact schemas, vulnerability integration, and a headless `AppTest` smoke test that renders all seven Streamlit pages.
 
-Presenter rehearsal order (locked spec **§14 — Recommended final demo sequence**):
+Two properties the optimizations depend on are pinned explicitly: that supplying precomputed baseline inputs yields byte-identical scenario rows, and that running a scenario never mutates the shared baseline graph — the app caches one graph across reruns, so a mutating edit would corrupt every later scenario in the session.
 
-1. Open a monthly snapshot (Overview / app default for `snapshot_id`).
-2. Show major hubs on the network map.
-3. Switch to Airport Explorer and rank by Hub Score.
-4. Rank by Bridge Score and explain the difference.
-5. Open Communities and show Leiden partitioning.
-6. Open Route Explorer and highlight cross-community routes.
-7. Remove a major airport in the Scenario Editor.
-8. Show ripple spread, impact score, and network health drop.
-9. Remove a route and compare the outcome.
-10. Close with the structural takeaway.
+Because the demo generator produces a complete dataset, data-dependent tests execute against real artifacts on any machine rather than skipping. Before it existed, 18 of 45 tests silently skipped on a fresh clone — a suite that reported success while a third of the pipeline went untested.
 
-## Pipeline configuration
+---
 
-Single checked-in YAML drives the MVP snapshot month and resolved paths for raw BTS files and processed outputs:
+## Project structure
 
-| Item | Location |
-|------|----------|
-| Config file | [`config/atna.yaml`](config/atna.yaml) |
-| Loader | [`src/etl/config.py`](src/etl/config.py) — `load_config()`, optional `validate_paths()` |
-
-**Bumping the MVP snapshot** — Edit `snapshot_id` in `config/atna.yaml` to the target `YYYY-MM` (must match the month you froze in `data/raw/`). Path templates in that file expand `{year}`, `{month}`, and `{snapshot_id}`; they follow the same layout as [`data/reference/download_manifest_2025.json`](data/reference/download_manifest_2025.json) and the downloader. After changing the month, re-fetch or copy raw CSVs for that month if needed, then confirm files exist before ETL.
-
-**Verify downloads match config** — From the repo root:
-
-```bash
-python scripts/download/verify_downloads.py --year 2025
 ```
-
-Adjust `--year` if your manifest and `snapshot_id` use a different calendar year. The script checks counts and non-empty files; align its year with the raw paths implied by `snapshot_id`.
-
-**Load config in Python** (from repository root, with `src` on the path):
-
-```bash
-python -c "import sys; from pathlib import Path; sys.path.insert(0, str(Path('src').resolve())); from etl.config import load_config, validate_paths; c = load_config(); validate_paths(c); print(c.snapshot_id, c.processed_dir)"
+ATNA/
+├── config/atna.yaml            # Snapshot month + resolved raw/processed paths
+├── src/
+│   ├── etl/                    # BTS extracts → airports.csv, edges.csv, nodes.csv
+│   │   ├── load_raw.py         #   typed readers, U.S. domestic filter
+│   │   ├── build_airports.py   #   master coordinate join
+│   │   ├── build_edges.py      #   route aggregation, log1p analysis weight
+│   │   └── build_nodes.py      #   strength and degree rollups
+│   ├── metrics/                # Graph construction and scoring
+│   │   ├── graph_builder.py    #   validated DiGraph build
+│   │   ├── centralities.py     #   PageRank, betweenness, eigenvector
+│   │   ├── hub_bridge.py       #   locked composite scores
+│   │   ├── leiden_communities.py #  partition + community rollups
+│   │   ├── route_criticality.py  #  per-route structural scoring
+│   │   └── run_metrics.py      #   stage entrypoint
+│   ├── scenarios/              # What-if engine
+│   │   ├── graph_edits.py      #   copy or zero-copy view removals
+│   │   ├── ripple.py           #   two-hop propagation, λ = 0.35
+│   │   ├── scoring.py          #   LCC / reachability / impact / health
+│   │   ├── vulnerability.py    #   per-airport batch scoring
+│   │   └── engine.py           #   orchestration + deterministic scenario ids
+│   └── app/                    # Streamlit application
+│       ├── streamlit_app.py    #   router shell
+│       ├── data_loader.py      #   cached, schema-guarded artifact loaders
+│       ├── scenario_service.py #   session state, history, revert
+│       ├── pages/              #   seven pages
+│       └── ui/                 #   shared components and formatters
+├── scripts/
+│   ├── demo/generate_demo_data.py  # Synthetic BTS-shaped dataset
+│   ├── download/                   # Playwright TranStats downloader + verifier
+│   └── metrics/                    # Static map QA checks
+├── setupScripts/               # One-command setup / start / pipeline (sh + bat)
+├── tests/                      # 53 tests
+├── data/                       # raw (gitignored) · interim · processed · reference
+├── organization/               # Locked technical specification
+├── .github/workflows/ci.yml    # Lint + full pipeline + tests on 3.10–3.13
+└── pyproject.toml              # Ruff and pytest configuration
 ```
 
 ---
 
-## Data Download
-
-### Prerequisites
-
-- Python 3.10+
-- Dependencies: `pip install -r requirements.txt`
-- Playwright browser: `python -m playwright install chromium`
-
-### Run the downloader
-
-From the repository root:
+## Development commands
 
 ```bash
-python scripts/download/download_bts_data.py
+./setupScripts/setup.sh --demo      # Full bootstrap with synthetic data
+./setupScripts/setup.sh --data      # Full bootstrap with real BTS download
+./setupScripts/setup.sh --skip-data # Environment only
+./setupScripts/pipeline.sh          # Rebuild all artifacts: ETL → metrics → scenarios
+./setupScripts/start.sh             # Launch the Streamlit app
 ```
 
-Options:
-
-- `--year 2025` — calendar year (default `2025`)
-- `--only {all,on_time,t100,master}` — fetch a subset
-- `--headed` — show the Chromium window (default is headless)
-- `--pause 3` — seconds between downloads (default `3`)
-- `--continue-on-error` — keep going after a failed month (default stops on first failure)
-
-TranStats returns a **ZIP** per request; the script saves the inner CSV to `data/raw/...` using the names in [`docs/data_download_spec.md`](docs/data_download_spec.md). Original ZIPs are not kept (only the extracted CSV bytes are written).
-
-### Verify files
+Individual stages, with `src` on the path:
 
 ```bash
-python scripts/download/verify_downloads.py --year 2025
+PYTHONPATH=src .venv/bin/python scripts/demo/generate_demo_data.py --force
+PYTHONPATH=src .venv/bin/python -m etl.run_pipeline
+PYTHONPATH=src .venv/bin/python -m metrics.run_metrics
+PYTHONPATH=src .venv/bin/python -m scenarios.run_scenarios
+PYTHONPATH=src .venv/bin/python -m pytest tests -q
 ```
 
-Expect **12** on-time files, **12** T-100 segment files, and **one** master coordinate file, all non-empty.
+**Changing the snapshot month:** edit `snapshot_id` in [`config/atna.yaml`](config/atna.yaml) to a `YYYY-MM` value, make sure raw CSVs exist for that month, then re-run the pipeline. Path templates expand `{year}`, `{month}`, and `{snapshot_id}` automatically.
 
-### Layout
+**Raw data policy:** `data/raw/` is immutable in place. Refreshing data means writing to a new path, not overwriting existing bytes, so prior inputs stay inspectable and results stay reproducible.
 
-- Raw: `data/raw/on_time/2025/`, `data/raw/t100_segment/2025/`, `data/raw/airport_reference/`
-- Manifest: `data/reference/download_manifest_2025.md` and `download_manifest_2025.json`
-- Logs: `logs/download_*.log`
+---
 
-### If BTS blocks automation
+## Tech stack
 
-TranStats may throttle or challenge automated sessions. If downloads fail consistently:
+**Pipeline** — Python 3.13 · pandas · NumPy · PyYAML
+**Graph** — NetworkX · python-igraph · leidenalg · SciPy
+**App** — Streamlit · Plotly
+**Testing** — pytest · Streamlit `AppTest`
+**Data acquisition** — Playwright
 
-1. Run with `--headed` to observe the form.
-2. Use the same field checklist in `data/reference/field_selection_notes.md` for a **manual** download from the three TranStats pages listed in `data/reference/README_data_sources.md`.
-3. Save ZIPs or CSVs into the paths above (or drop CSVs next to the expected filenames) and re-run `verify_downloads.py`.
-
-For a reproducible manual path, open each DL_SelectFields URL, choose **Geography: All**, **Year** and **Month** (where applicable), select the listed fields, click **Download**, unzip if needed, and rename to `on_time_2025_MM.csv`, `t100_2025_MM.csv`, or `master_coordinate_latest.csv`.
+---
 
 ## Documentation
 
-- Locked MVP spec: [`organization/ATNA_MVP_Technical_Spec_and_Workflow.md`](organization/ATNA_MVP_Technical_Spec_and_Workflow.md)
-- Spec pointer: [`docs/specs/README.md`](docs/specs/README.md)
-- Data rationale: `data/reference/README_data_sources.md`
-- Field mapping: `data/reference/field_selection_notes.md`
-- Download spec: [`docs/data_download_spec.md`](docs/data_download_spec.md)
+| Document | Purpose |
+|---|---|
+| [Technical specification](organization/ATNA_MVP_Technical_Spec_and_Workflow.md) | Locked data model, formulas, and workflow |
+| [Data sources](data/reference/README_data_sources.md) | BTS tables and why each is used |
+| [Field selection notes](data/reference/field_selection_notes.md) | Exact TranStats fields per download |
+| [Download spec](docs/data_download_spec.md) | Raw file naming and layout |
+| [Manual download](scripts/download/MANUAL_BTS_DOWNLOAD.md) | Fallback when TranStats blocks automation |
+| [Validation notes](data/reference/validation_notes_mvp.md) | Snapshot metadata, exclusions, BTS quirks |
+
+---
+
+<div align="center">
+
+Built as a team project at Texas A&M University.
+
+</div>
