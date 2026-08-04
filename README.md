@@ -24,7 +24,7 @@ This repository contains the complete analysis stack:
 - Graph metrics engine with PageRank, betweenness, and Leiden community detection
 - Scenario engine with 2-hop ripple propagation and per-airport vulnerability scoring
 - Seven-page Streamlit application with Plotly maps and a revertible scenario editor
-- 53 tests covering column contracts, metric math, and headless page rendering
+- 56 tests covering column contracts, metric math, artifact reproducibility, and headless page rendering
 - Continuous integration running lint and the full pipeline on Python 3.10 through 3.13
 
 **Synthetic Demo Dataset (recently added):** The BTS extracts are large, rate limited, and not redistributable, so a fresh clone previously had no data and the application was dead on arrival. A generator now writes BTS-shaped raw CSVs that the unmodified pipeline consumes exactly like production input, which also lets the data-dependent half of the test suite run on any machine.
@@ -228,7 +228,7 @@ ATNA/
 │   ├── setup.sh / setup.bat        # Environment, dependencies, data bootstrap
 │   ├── start.sh / start.bat        # Launch the Streamlit application
 │   └── pipeline.sh / pipeline.bat  # Rebuild all processed artifacts
-├── tests/                      # 53 tests
+├── tests/                      # 56 tests
 ├── data/                       # raw (gitignored), interim, processed, reference
 ├── organization/               # MVP technical specification
 ├── .github/workflows/ci.yml    # Lint + full pipeline + tests on 3.10 to 3.13
@@ -413,13 +413,14 @@ PYTHONPATH=src .venv/bin/python -m pytest tests -q -k "not streamlit"
 
 ### Test Coverage
 
-**53 tests, all passing, no skips**, in roughly 3 seconds end to end.
+**56 tests, all passing, no skips**, in roughly 3 seconds end to end.
 
 - **ETL**: column and join contracts for all three canonical tables, roundtrip writes
 - **Metrics**: centrality math, hub and bridge composites, Leiden partition coverage, route criticality
 - **Scenarios**: graph-edit isolation, ripple propagation, scoring formulas, artifact schemas, vulnerability integration
 - **Application**: headless `AppTest` smoke coverage rendering all seven pages
 - **Optimization guarantees**: precomputed baseline inputs produce byte-identical scenario rows, and running a scenario never mutates the shared baseline graph
+- **Reproducibility**: eigenvector centrality is bitwise stable across repeated calls, so a frozen input month yields a frozen artifact
 
 **On the demo dataset and test coverage:** because the generator produces a complete dataset, data-dependent tests execute against real artifacts on any machine rather than skipping. Before it existed, 18 of 45 tests silently skipped on a fresh clone, which meant the suite reported success while a third of the pipeline went untested.
 
