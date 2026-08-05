@@ -56,6 +56,16 @@ MIN_ROUTE_FLIGHTS = 30
 # into a couple of communities instead of resolving regional structure.
 HUB_MASS_THRESHOLD = 0.50
 REGIONAL_NONSTOP_MILES = 450.0
+
+# A spoke airport is served by a handful of hubs, not by every hub in the country, and
+# the smallest airports depend on only one or two. Without this the graph has minimum
+# degree in the double digits, no single removal can disconnect anything, and LCC loss
+# and reachability loss come out identical for every airport - which silently reduces
+# the impact score to its ripple term alone and ranks peripheral airports as the most
+# critical in the network.
+#
+# (mass below threshold, hub links granted) evaluated in order.
+SPOKE_HUB_LINK_TIERS: tuple[tuple[float, int], ...] = ((0.15, 1), (0.22, 2), (1.01, 3))
 SEATS_PER_FLIGHT = 150
 LOAD_FACTOR_RANGE = (0.68, 0.92)
 CANCELLATION_RATE = 0.017
@@ -176,6 +186,59 @@ def build_master_frame() -> pd.DataFrame:
     )
 
 
+def _hub_links_for(airport_mass: float) -> int:
+    """Number of hubs a spoke of this size is served by."""
+    for threshold, links in SPOKE_HUB_LINK_TIERS:
+        if airport_mass < threshold:
+            return links
+    return SPOKE_HUB_LINK_TIERS[-1][1]
+
+
+def _select_served_pairs(
+    first_idx: np.ndarray,
+    second_idx: np.ndarray,
+    mass: np.ndarray,
+    distance: np.ndarray,
+    pair_expected: np.ndarray,
+) -> np.ndarray:
+    """Boolean mask over unordered pairs for the ones that receive nonstop service.
+
+    Three rules, mirroring how domestic networks are actually built:
+
+    * hub to hub - served whenever the modelled volume clears the threshold
+    * spoke to hub - each spoke keeps its strongest hubs, one to three by airport size
+    * spoke to spoke - served only between regional neighbors
+
+    The per-spoke cap is what gives the network genuine fragility. Connect every spoke
+    to every hub and no single airport removal can disconnect anything, which flattens
+    both connectivity terms of the impact score to a constant. Sizing the cap by mass
+    leaves the smallest airports genuinely dependent on a single hub, so losing that hub
+    strands them exactly as it would in the real network.
+    """
+    viable = pair_expected >= MIN_ROUTE_FLIGHTS
+    first_is_hub = mass[first_idx] >= HUB_MASS_THRESHOLD
+    second_is_hub = mass[second_idx] >= HUB_MASS_THRESHOLD
+
+    hub_to_hub = viable & first_is_hub & second_is_hub
+    spoke_to_spoke = (
+        viable & ~first_is_hub & ~second_is_hub & (distance <= REGIONAL_NONSTOP_MILES)
+    )
+    served = hub_to_hub | spoke_to_spoke
+
+    # Rank each spoke's candidate hubs by modelled volume and keep the strongest few.
+    candidates: dict[int, list[tuple[float, int]]] = {}
+    for position in np.flatnonzero(viable & (first_is_hub ^ second_is_hub)):
+        spoke = int(second_idx[position] if first_is_hub[position] else first_idx[position])
+        candidates.setdefault(spoke, []).append((float(pair_expected[position]), int(position)))
+
+    for spoke, ranked in candidates.items():
+        ranked.sort(key=lambda item: -item[0])
+        for _, position in ranked[: _hub_links_for(float(mass[spoke]))]:
+            served[position] = True
+
+    return served
+
+
 def build_route_frame(rng: np.random.Generator) -> pd.DataFrame:
     """Directed routes with a gravity-model monthly flight count.
 
@@ -204,9 +267,9 @@ def build_route_frame(rng: np.random.Generator) -> pd.DataFrame:
     shock = rng.lognormal(mean=0.0, sigma=0.55, size=expected.shape)
     pair_expected = np.maximum(expected * shock, 0.0)
 
-    serves_hub = (mass[first_idx] >= HUB_MASS_THRESHOLD) | (mass[second_idx] >= HUB_MASS_THRESHOLD)
-    regional_pair = distance <= REGIONAL_NONSTOP_MILES
-    served = (pair_expected >= MIN_ROUTE_FLIGHTS) & (serves_hub | regional_pair)
+    served = _select_served_pairs(
+        first_idx, second_idx, mass, distance, pair_expected
+    )
 
     first_idx, second_idx = first_idx[served], second_idx[served]
     distance, pair_expected = distance[served], pair_expected[served]
