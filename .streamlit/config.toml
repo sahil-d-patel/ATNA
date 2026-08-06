@@ -1,0 +1,21 @@
+# ATNA application theme.
+#
+# Deliberately restrained: warm neutral surfaces, one accent, and no decorative
+# color. Hue is reserved for encoding data, so a saturated element on screen
+# always means a value rather than a flourish.
+
+[theme]
+base = "light"
+
+primaryColor = "#0F766E"              # deep teal, interactive affordances only
+backgroundColor = "#FAFAF9"           # warm off-white, softer than pure white
+secondaryBackgroundColor = "#FFFFFF"  # raised surfaces: sidebar, cards, tables
+textColor = "#1C1917"                 # warm near-black
+
+font = "sans serif"
+
+[server]
+headless = true
+
+[browser]
+gatherUsageStats = false
