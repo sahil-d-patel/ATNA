@@ -27,6 +27,7 @@ class AppConfig:
     repo_root: Path
     config_path: Path
     processed_dir: Path
+    airports_csv: Path
     edges_csv: Path
     nodes_csv: Path
     metrics_csv: Path
@@ -104,6 +105,7 @@ def _load_app_config_cached(config_path_str: str, _mtime_ns: int) -> AppConfig:
         repo_root=root,
         config_path=config_path,
         processed_dir=processed_dir,
+        airports_csv=(processed_dir / "airports.csv").resolve(),
         edges_csv=(processed_dir / "edges.csv").resolve(),
         nodes_csv=(processed_dir / "nodes.csv").resolve(),
         metrics_csv=(root / metrics_rel).resolve(),

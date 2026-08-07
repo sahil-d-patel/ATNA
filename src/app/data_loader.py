@@ -9,9 +9,6 @@ import pandas as pd
 from app.config import AppConfig, load_app_config
 from app.streamlit_compat import st
 
-_MASTER_AIRPORT_REL = "data/raw/airport_reference/master_coordinate_latest.csv"
-
-
 REQUIRED_COLUMNS: dict[str, set[str]] = {
     "nodes": {
         "snapshot_id",
@@ -24,6 +21,15 @@ REQUIRED_COLUMNS: dict[str, set[str]] = {
         "degree_out",
         "degree_in",
         "degree_total",
+    },
+    "airports": {
+        "airport_id_canonical",
+        "airport_code_raw",
+        "airport_name",
+        "city",
+        "state",
+        "latitude",
+        "longitude",
     },
     "edges": {
         "snapshot_id",
@@ -118,48 +124,27 @@ def _snapshot_filter(df: pd.DataFrame, snapshot_id: str) -> pd.DataFrame:
 
 
 @st.cache_data(show_spinner=False)
-def _load_nodes_cached(snapshot_id: str, csv_path: str) -> pd.DataFrame:
-    df = _read_csv_checked(Path(csv_path), "nodes", REQUIRED_COLUMNS["nodes"])
-    return _snapshot_filter(df, snapshot_id)
+def _read_artifact_cached(
+    csv_path: str, artifact_name: str, _mtime_ns: int, snapshot_id: str | None
+) -> pd.DataFrame:
+    """Read, validate, and snapshot-filter one artifact.
+
+    ``_mtime_ns`` participates in the cache key so a pipeline rebuild is picked up on
+    the next interaction. Keying on the path alone made the application keep serving
+    artifacts from a previous build until the server was restarted, which defeats the
+    point of rebuilding.
+    """
+    frame = _read_csv_checked(Path(csv_path), artifact_name, REQUIRED_COLUMNS[artifact_name])
+    return frame if snapshot_id is None else _snapshot_filter(frame, snapshot_id)
 
 
-@st.cache_data(show_spinner=False)
-def _load_edges_cached(snapshot_id: str, csv_path: str) -> pd.DataFrame:
-    df = _read_csv_checked(Path(csv_path), "edges", REQUIRED_COLUMNS["edges"])
-    return _snapshot_filter(df, snapshot_id)
-
-
-@st.cache_data(show_spinner=False)
-def _load_metrics_cached(snapshot_id: str, csv_path: str) -> pd.DataFrame:
-    df = _read_csv_checked(Path(csv_path), "metrics", REQUIRED_COLUMNS["metrics"])
-    return _snapshot_filter(df, snapshot_id)
-
-
-@st.cache_data(show_spinner=False)
-def _load_communities_cached(snapshot_id: str, csv_path: str) -> pd.DataFrame:
-    df = _read_csv_checked(Path(csv_path), "communities", REQUIRED_COLUMNS["communities"])
-    return _snapshot_filter(df, snapshot_id)
-
-
-@st.cache_data(show_spinner=False)
-def _load_route_metrics_cached(snapshot_id: str, csv_path: str) -> pd.DataFrame:
-    df = _read_csv_checked(Path(csv_path), "route_metrics", REQUIRED_COLUMNS["route_metrics"])
-    return _snapshot_filter(df, snapshot_id)
-
-
-@st.cache_data(show_spinner=False)
-def _load_scenarios_cached(snapshot_id: str, csv_path: str) -> pd.DataFrame:
-    df = _read_csv_checked(Path(csv_path), "scenarios", REQUIRED_COLUMNS["scenarios"])
-    return _snapshot_filter(df, snapshot_id)
-
-
-@st.cache_data(show_spinner=False)
-def _load_scenario_exposure_cached(_snapshot_id: str, csv_path: str) -> pd.DataFrame:
-    return _read_csv_checked(
-        Path(csv_path),
-        "scenario_exposure",
-        REQUIRED_COLUMNS["scenario_exposure"],
-    )
+def _load_artifact(
+    path: Path, artifact_name: str, snapshot_id: str | None = None
+) -> pd.DataFrame:
+    """Cached artifact read, invalidated whenever the file on disk changes."""
+    if not path.is_file():
+        raise ValueError(f"{artifact_name} artifact not found: {path}")
+    return _read_artifact_cached(str(path), artifact_name, path.stat().st_mtime_ns, snapshot_id)
 
 
 def _resolve_config(config: AppConfig | None) -> AppConfig:
@@ -168,84 +153,95 @@ def _resolve_config(config: AppConfig | None) -> AppConfig:
 
 def load_metrics(config: AppConfig | None = None) -> pd.DataFrame:
     cfg = _resolve_config(config)
-    return _load_metrics_cached(cfg.snapshot_id, str(cfg.metrics_csv))
+    return _load_artifact(cfg.metrics_csv, "metrics", cfg.snapshot_id)
 
 
 def load_nodes(config: AppConfig | None = None) -> pd.DataFrame:
     cfg = _resolve_config(config)
-    return _load_nodes_cached(cfg.snapshot_id, str(cfg.nodes_csv))
+    return _load_artifact(cfg.nodes_csv, "nodes", cfg.snapshot_id)
 
 
 def load_edges(config: AppConfig | None = None) -> pd.DataFrame:
     cfg = _resolve_config(config)
-    return _load_edges_cached(cfg.snapshot_id, str(cfg.edges_csv))
+    return _load_artifact(cfg.edges_csv, "edges", cfg.snapshot_id)
 
 
 def load_communities(config: AppConfig | None = None) -> pd.DataFrame:
     cfg = _resolve_config(config)
-    return _load_communities_cached(cfg.snapshot_id, str(cfg.communities_csv))
+    return _load_artifact(cfg.communities_csv, "communities", cfg.snapshot_id)
 
 
 def load_route_metrics(config: AppConfig | None = None) -> pd.DataFrame:
     cfg = _resolve_config(config)
-    return _load_route_metrics_cached(cfg.snapshot_id, str(cfg.route_metrics_csv))
+    return _load_artifact(cfg.route_metrics_csv, "route_metrics", cfg.snapshot_id)
 
 
 def load_scenarios(config: AppConfig | None = None) -> pd.DataFrame:
     cfg = _resolve_config(config)
-    return _load_scenarios_cached(cfg.snapshot_id, str(cfg.scenarios_csv))
+    return _load_artifact(cfg.scenarios_csv, "scenarios", cfg.snapshot_id)
 
 
 def load_scenario_exposure(config: AppConfig | None = None) -> pd.DataFrame:
     cfg = _resolve_config(config)
-    return _load_scenario_exposure_cached(cfg.snapshot_id, str(cfg.scenario_exposure_csv))
+    # scenario_exposure.csv is keyed by scenario_id and carries no snapshot column.
+    return _load_artifact(cfg.scenario_exposure_csv, "scenario_exposure")
 
 
-@st.cache_data(show_spinner=False)
-def _load_airports_geo_cached(snapshot_id: str, master_csv: str, metrics_csv: str) -> pd.DataFrame:
-    master_path = Path(master_csv)
-    if not master_path.is_file():
-        raise ValueError(f"Master airport reference not found: {master_path}")
-    # Only the columns the map needs — the real master file is wide and mostly unused here.
-    master_columns = [
-        "AIRPORT_IS_LATEST",
-        "AIRPORT_ID",
-        "AIRPORT",
-        "DISPLAY_AIRPORT_NAME",
-        "LATITUDE",
-        "LONGITUDE",
-    ]
-    header = pd.read_csv(master_path, nrows=0)
-    missing = [column for column in master_columns if column not in header.columns]
-    if missing:
-        raise ValueError(
-            f"Master airport reference at {master_path} is missing required columns: "
-            f"{missing}. Re-download it or regenerate the demo dataset."
-        )
-    master = pd.read_csv(master_path, usecols=master_columns, low_memory=False)
-    master = master.loc[master["AIRPORT_IS_LATEST"] == 1].drop(columns="AIRPORT_IS_LATEST")
-    master = master.rename(
+def _load_airports_cached(csv_path: str) -> pd.DataFrame:
+    """Load ``airports.csv`` and normalize it to app-facing column names.
+
+    ``airports.csv`` has no ``snapshot_id`` column: it is written per snapshot
+    directory, so the path already identifies the snapshot.
+    """
+    df = _load_artifact(Path(csv_path), "airports")
+    labels = df.rename(
         columns={
-            "AIRPORT_ID": "airport_id",
-            "AIRPORT": "iata_code",
-            "DISPLAY_AIRPORT_NAME": "airport_name",
-            "LATITUDE": "latitude",
-            "LONGITUDE": "longitude",
+            "airport_id_canonical": "airport_id",
+            "airport_code_raw": "iata_code",
         }
-    )
-    metrics = _read_csv_checked(Path(metrics_csv), "metrics", REQUIRED_COLUMNS["metrics"])
-    metrics = _snapshot_filter(metrics, snapshot_id)
-    merged = metrics.merge(master, on="airport_id", how="left")
-    return merged
+    )[["airport_id", "iata_code", "airport_name", "city", "state", "latitude", "longitude"]]
+    labels["airport_id"] = labels["airport_id"].astype(int)
+    labels["iata_code"] = labels["iata_code"].astype(str)
+    # Precomputed once here so pages can label rows without repeating the concatenation.
+    labels["airport_label"] = labels["iata_code"] + " · " + labels["airport_name"].astype(str)
+    return labels
+
+
+def load_airports(config: AppConfig | None = None) -> pd.DataFrame:
+    """Airport reference for the snapshot: code, name, city, state, coordinates.
+
+    Sourced from the processed ``airports.csv`` rather than the raw BTS master file.
+    The raw tree is an ETL input, is gitignored, and is frequently absent on a machine
+    that only has published artifacts, so the application must not depend on it.
+    """
+    cfg = _resolve_config(config)
+    return _load_airports_cached(str(cfg.airports_csv))
 
 
 def load_airports_geo(config: AppConfig | None = None) -> pd.DataFrame:
-    """Return metrics joined with lat/lon from the master airport reference file.
+    """Metrics joined with airport identity and coordinates.
 
-    Each row is one airport in the current snapshot, with all metrics columns plus
-    ``latitude``, ``longitude``, ``iata_code``, and ``airport_name``.
-    Rows with no coordinate match will have NaN lat/lon.
+    One row per airport in the snapshot, carrying every metrics column plus
+    ``iata_code``, ``airport_name``, ``city``, ``state``, ``latitude``, ``longitude``,
+    and a display-ready ``airport_label``.
     """
     cfg = _resolve_config(config)
-    master_csv = str(cfg.repo_root / _MASTER_AIRPORT_REL)
-    return _load_airports_geo_cached(cfg.snapshot_id, master_csv, str(cfg.metrics_csv))
+    metrics = load_metrics(cfg)
+    return metrics.merge(load_airports(cfg), on="airport_id", how="left")
+
+
+def label_airports(
+    df: pd.DataFrame,
+    config: AppConfig | None = None,
+    *,
+    id_column: str = "airport_id",
+) -> pd.DataFrame:
+    """Attach ``iata_code``, ``airport_name``, and ``airport_label`` to ``df``.
+
+    Tables keyed by DOT airport id are unreadable without this: a reader recognizes
+    ATL, not 10397. ``id_column`` allows labelling route endpoints as well as airports.
+    """
+    labels = load_airports(config)[["airport_id", "iata_code", "airport_name", "airport_label"]]
+    if id_column != "airport_id":
+        labels = labels.rename(columns={"airport_id": id_column})
+    return df.merge(labels, on=id_column, how="left")
