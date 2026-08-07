@@ -8,6 +8,7 @@ import pytest
 from streamlit.testing.v1 import AppTest
 
 from app.config import load_app_config
+from app.ui.components import EMPTY_FILTER_MESSAGE
 
 # Artifact-backed pages can exceed AppTest's default ~3s script completion window on cold runs.
 _RUN_TIMEOUT_S = 60.0
@@ -75,7 +76,7 @@ def test_empty_state_resilience_for_filterable_pages() -> None:
         network.multiselect[0].set_value([])
         network.run(timeout=_RUN_TIMEOUT_S)
         _assert_no_exception(network)
-        assert any("No rows for current filters." in node.value for node in network.info)
+        assert any(EMPTY_FILTER_MESSAGE in node.value for node in network.info)
 
     airport = _run_page("app.pages.airport_explorer", "render_airport_explorer_page")
     _assert_no_exception(airport)
@@ -83,7 +84,7 @@ def test_empty_state_resilience_for_filterable_pages() -> None:
         airport.multiselect[0].set_value([])
         airport.run(timeout=_RUN_TIMEOUT_S)
         _assert_no_exception(airport)
-        assert any("No rows for current filters." in node.value for node in airport.info)
+        assert any(EMPTY_FILTER_MESSAGE in node.value for node in airport.info)
 
 
 def _find_button(app: AppTest, label: str):
