@@ -1,4 +1,4 @@
-"""Network map page with threshold-safe filtering."""
+"""Network map page: the route network drawn over U.S. geography."""
 
 from __future__ import annotations
 
@@ -8,146 +8,180 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from app.config import load_app_config
-from app.data_loader import load_edges, load_metrics, load_route_metrics
+from app.data_loader import load_airports_geo, load_edges, load_route_metrics
 from app.ui.components import EMPTY_FILTER_MESSAGE, show_empty_state
+from app.ui.theme import (
+    COMMUNITY_COLORS,
+    GEO_LAYOUT,
+    HAIRLINE,
+    apply_page_chrome,
+    page_header,
+)
+
+# Cross-community routes are the interesting ones but also numerous, so they are
+# tinted rather than emphasised: at 40% of all routes, a heavy stroke buries the map.
+_ROUTE_COLOR = "rgba(120,113,108,0.22)"
+_CROSS_COLOR = "rgba(180,83,9,0.30)"
 
 
-def _build_plot(edges_df: pd.DataFrame, airport_xy: pd.DataFrame) -> go.Figure:
-    fig = go.Figure()
+def _route_segments(
+    routes: pd.DataFrame, coords: pd.DataFrame
+) -> tuple[list[float | None], list[float | None]]:
+    """Interleave endpoint coordinates as [origin, destination, None, ...].
 
-    airport_lookup = airport_xy.set_index("airport_id")
-    valid = edges_df.loc[
-        edges_df["origin_id"].isin(airport_lookup.index)
-        & edges_df["destination_id"].isin(airport_lookup.index)
-    ]
-    origins = valid["origin_id"]
-    destinations = valid["destination_id"]
+    One trace of separated segments instead of one trace per route: Plotly validates
+    per trace, so a few hundred traces would dominate render time.
+    """
+    origin = coords.reindex(routes["origin_id"])
+    destination = coords.reindex(routes["destination_id"])
+    separator = np.full(len(routes), None, dtype=object)
 
-    # Interleave endpoint coordinates as [origin, destination, None, ...] so each
-    # route renders as a separate line segment without a Python-level row loop.
-    ox = airport_lookup.loc[origins, "hub_score"].to_numpy()
-    oy = airport_lookup.loc[origins, "bridge_score"].to_numpy()
-    dx = airport_lookup.loc[destinations, "hub_score"].to_numpy()
-    dy = airport_lookup.loc[destinations, "bridge_score"].to_numpy()
-    separators = np.full(len(valid), None, dtype=object)
-    line_x = np.column_stack([ox, dx, separators]).ravel().tolist()
-    line_y = np.column_stack([oy, dy, separators]).ravel().tolist()
+    lons = np.column_stack(
+        [origin["longitude"].to_numpy(), destination["longitude"].to_numpy(), separator]
+    ).ravel()
+    lats = np.column_stack(
+        [origin["latitude"].to_numpy(), destination["latitude"].to_numpy(), separator]
+    ).ravel()
+    return lons.tolist(), lats.tolist()
 
-    # Vectorized rounding + astype(str) instead of a per-row lambda: hover text is
-    # rebuilt for every route on each rerun, so Python-level formatting here scales
-    # directly with edge count.
-    route_text = (
-        origins.astype(int).astype(str) + " -> " + destinations.astype(int).astype(str)
-        + "<br>month=" + valid["month"].astype(int).astype(str)
-        + "<br>analysis_weight=" + valid["analysis_weight"].round(3).astype(str)
-        + "<br>flight_count=" + valid["flight_count"].astype(int).astype(str)
-        + "<br>route_criticality="
-        + pd.to_numeric(valid["route_criticality_score"]).round(3).astype(str)
-    ).to_numpy(dtype=object)
-    blanks = np.full(len(valid), "", dtype=object)
-    line_text = np.column_stack([route_text, route_text, blanks]).ravel().tolist()
 
-    fig.add_trace(
-        go.Scatter(
-            x=line_x,
-            y=line_y,
-            mode="lines",
-            hoverinfo="text",
-            text=line_text,
-            line={"width": 1, "color": "rgba(120,120,120,0.35)"},
-            showlegend=False,
+def _build_map(
+    routes: pd.DataFrame, airports: pd.DataFrame, coords: pd.DataFrame, *, show_cross: bool
+) -> go.Figure:
+    figure = go.Figure()
+
+    within = routes.loc[routes["cross_community_flag"].astype(int) == 0]
+    across = routes.loc[routes["cross_community_flag"].astype(int) == 100]
+
+    for subset, color, name in [
+        (within, _ROUTE_COLOR, "Within community"),
+        (across, _CROSS_COLOR, "Cross-community"),
+    ]:
+        if subset.empty or (name == "Cross-community" and not show_cross):
+            continue
+        lons, lats = _route_segments(subset, coords)
+        figure.add_trace(
+            go.Scattergeo(
+                lon=lons, lat=lats, mode="lines",
+                line={"width": 0.8 if name == "Cross-community" else 0.6, "color": color},
+                hoverinfo="skip", name=name,
+            )
         )
-    )
 
-    fig.add_trace(
-        go.Scatter(
-            x=airport_xy["hub_score"],
-            y=airport_xy["bridge_score"],
-            mode="markers",
-            text=(
-                "airport=" + airport_xy["airport_id"].astype(int).astype(str)
-                + "<br>community=" + airport_xy["leiden_community_id"].astype(int).astype(str)
-                + "<br>vulnerability=" + airport_xy["vulnerability_score"].round(3).astype(str)
-            ),
-            hoverinfo="text",
+    figure.add_trace(
+        go.Scattergeo(
+            lon=airports["longitude"], lat=airports["latitude"], mode="markers",
             marker={
-                "size": airport_xy["vulnerability_score"].clip(lower=5) / 4 + 5,
-                "color": airport_xy["vulnerability_score"],
-                "colorscale": "Viridis",
-                "showscale": True,
-                "colorbar": {"title": "Vulnerability"},
-                "line": {"width": 0.5, "color": "white"},
+                # Area, not radius, tracks the score: doubling a marker's width would
+                # quadruple its perceived weight.
+                "size": 6 + np.sqrt(airports["hub_score"].clip(lower=0)) * 1.9,
+                "color": [
+                    COMMUNITY_COLORS[int(c) % len(COMMUNITY_COLORS)]
+                    for c in airports["leiden_community_id"]
+                ],
+                "line": {"width": 0.7, "color": "white"},
+                "opacity": 0.92,
             },
+            customdata=airports[
+                ["iata_code", "airport_name", "hub_score", "bridge_score",
+                 "vulnerability_score", "leiden_community_id"]
+            ],
+            hovertemplate=(
+                "<b>%{customdata[0]}</b> · %{customdata[1]}"
+                "<br>Hub %{customdata[2]:.1f}   Bridge %{customdata[3]:.1f}"
+                "<br>Vulnerability %{customdata[4]:.1f}   Community %{customdata[5]}"
+                "<extra></extra>"
+            ),
+            name="Airports",
             showlegend=False,
         )
     )
-    fig.update_layout(
-        # Preserve the user's zoom and pan when filters rebuild the figure; without a
-        # stable uirevision every slider nudge snaps the axes back to autorange.
+
+    figure.update_layout(
         uirevision="network-map",
-        xaxis_title="Hub score",
-        yaxis_title="Bridge score",
-        title="Airport network projection (routes + airport risk context)",
-        margin={"l": 10, "r": 10, "t": 50, "b": 10},
+        geo=GEO_LAYOUT,
+        height=620,
+        margin={"l": 0, "r": 0, "t": 10, "b": 0},
+        legend={
+            "orientation": "h", "yanchor": "bottom", "y": 0.01,
+            "xanchor": "left", "x": 0.01, "bgcolor": "rgba(255,255,255,0.9)",
+            "bordercolor": HAIRLINE, "borderwidth": 1,
+        },
     )
-    return fig
+    return figure
 
 
 def render_network_map_page() -> None:
     """Render APP-02 network map."""
+    apply_page_chrome()
     config = load_app_config()
     try:
         edges_df = load_edges(config)
-        metrics_df = load_metrics(config)
         route_metrics_df = load_route_metrics(config)
+        geo_df = load_airports_geo(config)
     except ValueError as exc:
         st.error(f"Unable to load network map artifacts: {exc}")
         return
 
-    st.title("Network Map")
-    st.caption(
-        f"Snapshot `{config.snapshot_id}` routes visualized with month and analysis-weight filters."
+    page_header(
+        "Network Map",
+        "Routes over U.S. geography. Marker size follows hub score, color follows community.",
+        meta=f"Snapshot {config.snapshot_id}",
     )
 
-    month_options = sorted(int(month) for month in edges_df["month"].dropna().unique())
-    selected_months = st.multiselect(
-        "Months",
-        options=month_options,
-        default=month_options,
-        help="Filters route rows by month while keeping airport context stable.",
-    )
-
-    max_weight = float(edges_df["analysis_weight"].max())
-    min_weight = st.slider(
-        "Minimum analysis weight",
-        min_value=0.0,
-        max_value=max_weight,
-        value=0.0,
-        step=0.1,
-    )
-
-    filtered_edges = edges_df.loc[edges_df["analysis_weight"] >= min_weight].copy()
-    if selected_months:
-        filtered_edges = filtered_edges.loc[filtered_edges["month"].isin(selected_months)]
-    else:
-        filtered_edges = filtered_edges.iloc[0:0]
-
-    if filtered_edges.empty:
-        show_empty_state(EMPTY_FILTER_MESSAGE)
-        return
-
-    airport_ids = pd.unique(
-        pd.concat([filtered_edges["origin_id"], filtered_edges["destination_id"]], ignore_index=True)
-    )
-    airport_xy = metrics_df.loc[metrics_df["airport_id"].isin(airport_ids)].copy()
-    if airport_xy.empty:
-        show_empty_state(EMPTY_FILTER_MESSAGE)
-        return
-
-    merged = filtered_edges.merge(
-        route_metrics_df.loc[:, ["origin_id", "destination_id", "route_criticality_score"]],
+    routes = edges_df.merge(
+        route_metrics_df.loc[
+            :, ["origin_id", "destination_id", "cross_community_flag", "route_criticality_score"]
+        ],
         on=["origin_id", "destination_id"],
-        how="left",
+        how="inner",
     )
-    fig = _build_plot(merged, airport_xy)
-    st.plotly_chart(fig, width="stretch")
+
+    weight_column, community_column, cross_column = st.columns([2.4, 2.4, 1.4])
+    with weight_column:
+        max_weight = float(edges_df["analysis_weight"].max())
+        min_weight = st.slider(
+            "Minimum route weight", min_value=0.0, max_value=round(max_weight, 2),
+            value=0.0, step=0.1,
+            help="Analysis weight is log1p(flight_count). Raise this to reveal the trunk network.",
+        )
+    with community_column:
+        community_options = sorted(
+            int(value) for value in geo_df["leiden_community_id"].dropna().unique()
+        )
+        selected_communities = st.multiselect(
+            "Communities", options=community_options, default=community_options
+        )
+    with cross_column:
+        show_cross = st.toggle("Cross-community", value=True,
+                               help="Highlight routes that join two communities.")
+
+    airports = geo_df.loc[
+        geo_df["leiden_community_id"].isin(selected_communities)
+    ].dropna(subset=["latitude", "longitude"])
+    if airports.empty:
+        show_empty_state(EMPTY_FILTER_MESSAGE)
+        return
+
+    visible_ids = set(airports["airport_id"].astype(int))
+    routes = routes.loc[
+        (routes["analysis_weight"] >= min_weight)
+        & routes["origin_id"].isin(visible_ids)
+        & routes["destination_id"].isin(visible_ids)
+    ]
+    if routes.empty:
+        show_empty_state(EMPTY_FILTER_MESSAGE)
+        return
+
+    coords = airports.set_index("airport_id")[["latitude", "longitude"]]
+    st.plotly_chart(
+        _build_map(routes, airports, coords, show_cross=show_cross),
+        width="stretch",
+        config={"displayModeBar": False, "scrollZoom": True},
+    )
+
+    cross_count = int((routes["cross_community_flag"].astype(int) == 100).sum())
+    st.caption(
+        f"{len(airports):,} airports  ·  {len(routes):,} routes shown  ·  "
+        f"{cross_count:,} cross-community"
+    )
