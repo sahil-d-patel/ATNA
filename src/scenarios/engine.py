@@ -10,6 +10,7 @@ from typing import Any
 
 import networkx as nx
 
+from scenarios.connectivity import ConnectivityCounts
 from scenarios.graph_edits import remove_airport, remove_route
 from scenarios.models import ScenarioType
 from scenarios.ripple import airport_removal_exposure, route_removal_exposure
@@ -26,13 +27,17 @@ def run_scenario(
     precomputed_shares: Mapping[int, Mapping[int, float]] | None = None,
     precomputed_dependency: Mapping[int, Mapping[int, float]] | None = None,
     pre_reachable_pairs: int | None = None,
+    post_connectivity: ConnectivityCounts | None = None,
 ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     """Run one scenario end-to-end and return normalized scenario and exposure rows.
 
     ``precomputed_shares``, ``precomputed_dependency``, and ``pre_reachable_pairs``
     let repeat callers reuse quantities derived solely from the unchanged baseline
     graph — normalized neighbor shares, undirected dependency weights, and the
-    baseline reachable-pair count. All default to ``None`` for identical single-run
+    baseline reachable-pair count. ``post_connectivity`` additionally supplies the
+    post-removal component size and reachable-pair count, which a sweep can obtain
+    from :class:`scenarios.connectivity.ConnectivityIndex` far more cheaply than by
+    measuring each edited graph. All default to ``None`` for identical single-run
     behavior.
     """
     if not isinstance(baseline_graph, nx.DiGraph):
@@ -87,6 +92,10 @@ def run_scenario(
         exposure_by_airport=exposure_by_airport,
         total_airports=baseline_graph.number_of_nodes(),
         pre_reachable_pairs=pre_reachable_pairs,
+        post_lcc_size=None if post_connectivity is None else post_connectivity.lcc_size,
+        post_reachable_pairs=(
+            None if post_connectivity is None else post_connectivity.reachable_pairs
+        ),
     )
     scenario_row = {
         "scenario_id": scenario_id,

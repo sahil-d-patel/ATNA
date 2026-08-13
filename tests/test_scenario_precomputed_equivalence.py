@@ -10,12 +10,16 @@ guarantee so a future change to the caching path cannot silently move published 
 from __future__ import annotations
 
 import networkx as nx
+import pandas as pd
 import pytest
 
+from metrics.percentile import percentile_rank_0_100
+from scenarios.connectivity import ConnectivityIndex
 from scenarios.engine import run_scenario
 from scenarios.graph_edits import remove_airport, remove_route
 from scenarios.ripple import build_dependency_weights, normalize_neighbor_shares
 from scenarios.scoring import reachable_pairs_count
+from scenarios.vulnerability import build_vulnerability_scores
 
 SNAPSHOT_ID = "2025-12"
 # created_at is wall-clock; pin it so only computed values are compared.
@@ -107,3 +111,69 @@ def test_copy_edit_stays_detached_from_baseline(fixture_graph) -> None:
     edited, _ = remove_airport(fixture_graph, {"airport_id": 4}, copy=True)
     edited.add_node(99)
     assert not fixture_graph.has_node(99)
+
+
+@pytest.mark.parametrize("airport_id", [1, 2, 3, 4])
+def test_post_connectivity_matches_measuring_the_edited_graph(fixture_graph, airport_id) -> None:
+    """Index-derived post-removal counts must not move any score.
+
+    The batch scorer supplies these counts instead of measuring each edited graph. That
+    is only sound if the two agree exactly, since both feed the same locked formulas.
+    """
+    _, shares, pre_pairs = _baseline_inputs(fixture_graph)
+    counts = ConnectivityIndex(fixture_graph).without_airport(airport_id)
+
+    measured_row, measured_exposure = run_scenario(
+        fixture_graph,
+        snapshot_id=SNAPSHOT_ID,
+        scenario_type="airport_removal",
+        payload={"airport_id": airport_id},
+        created_at=FIXED_CREATED_AT,
+        precomputed_shares=shares,
+        pre_reachable_pairs=pre_pairs,
+    )
+    indexed_row, indexed_exposure = run_scenario(
+        fixture_graph,
+        snapshot_id=SNAPSHOT_ID,
+        scenario_type="airport_removal",
+        payload={"airport_id": airport_id},
+        created_at=FIXED_CREATED_AT,
+        precomputed_shares=shares,
+        pre_reachable_pairs=pre_pairs,
+        post_connectivity=counts,
+    )
+
+    assert measured_row == indexed_row
+    assert measured_exposure == indexed_exposure
+
+
+def test_vulnerability_batch_is_unchanged_by_the_index(fixture_graph) -> None:
+    """End-to-end guard on the artifact column the batch actually produces."""
+    metrics = pd.DataFrame(
+        {
+            "snapshot_id": [SNAPSHOT_ID] * 4,
+            "airport_id": [1, 2, 3, 4],
+            "bridge_score": [25.0, 100.0, 75.0, 50.0],
+        }
+    )
+    scores = build_vulnerability_scores(
+        snapshot_id=SNAPSHOT_ID, baseline_graph=fixture_graph, metrics_df=metrics
+    )
+
+    # Recompute each impact the slow way and rebuild the blend independently.
+    expected_impacts = []
+    for airport_id in [1, 2, 3, 4]:
+        row, _ = run_scenario(
+            fixture_graph,
+            snapshot_id=SNAPSHOT_ID,
+            scenario_type="airport_removal",
+            payload={"airport_id": airport_id},
+            created_at=FIXED_CREATED_AT,
+        )
+        expected_impacts.append(row["impact_score"])
+
+    expected = (
+        0.60 * percentile_rank_0_100(pd.Series(expected_impacts))
+        + 0.40 * percentile_rank_0_100(metrics["bridge_score"])
+    )
+    assert scores["vulnerability_score"].tolist() == pytest.approx(expected.tolist())
