@@ -24,7 +24,7 @@ This repository contains the complete analysis stack:
 - Graph metrics engine with PageRank, betweenness, and Leiden community detection
 - Scenario engine with 2-hop ripple propagation and per-airport vulnerability scoring
 - Seven-page Streamlit application with Plotly maps and a revertible scenario editor
-- 56 tests covering column contracts, metric math, artifact reproducibility, and headless page rendering
+- 72 tests covering column contracts, metric math, artifact reproducibility, and headless page rendering
 - Continuous integration running lint and the full pipeline on Python 3.10 through 3.13
 
 **Synthetic Demo Dataset (recently added):** The BTS extracts are large, rate limited, and not redistributable, so a fresh clone previously had no data and the application was dead on arrival. A generator now writes BTS-shaped raw CSVs that the unmodified pipeline consumes exactly like production input, which also lets the data-dependent half of the test suite run on any machine.
@@ -36,6 +36,14 @@ This repository contains the complete analysis stack:
 ## Performance
 
 The pipeline was optimized against a 350 airport, 15,000 route graph, which is full U.S. domestic BTS scale. The expensive operation is the vulnerability batch, which removes every airport in turn and rescores the whole network each time. That is N scenarios over an N node, E edge graph, so a naive implementation degrades sharply exactly when the dataset gets interesting.
+
+| Operation | Before | After | Speedup |
+|---|---:|---:|---:|
+| `reachable_pairs_count`, single call | 16.8 ms | 2.3 ms | **7.2x** |
+| Vulnerability batch, 350 scenarios | 9.23 s | 0.33 s | **28x** |
+
+Every change below is structural. Artifact values and CSV column order are identical
+before and after, checked by regenerating the artifacts and diffing them byte for byte.
 
 ### 1. Counting Reachable Pairs Without Traversing Per Node
 Reachability loss needs the number of ordered reachable pairs. The direct reading of that definition is a breadth-first sweep from every node, which is O(V * (V + E)) per scenario, repeated N times.
@@ -63,16 +71,33 @@ Every scenario in the batch removes one airport from the same unchanged baseline
 
 The same three values are cached in the Streamlit layer, where they were previously rebuilt on every Simulate click.
 
-**Combined result:** vulnerability batch **9.23s to 2.61s**, a 3.5x improvement.
+**Combined result so far:** vulnerability batch **9.23s to 2.61s**, a 3.5x improvement.
 
-### 4. Parsing Each Raw Extract Once Per Run
+### 4. Taking the Sweep Out of NetworkX Entirely
+With the copies gone, the remaining per-scenario cost was the two connectivity counts
+the scoring formulas need: the largest weakly connected component, and the number of
+reachable ordered pairs. Both were still measured by rebuilding NetworkX structures for
+each of the N edited graphs.
+
+Those counts depend only on the edge list, so `ConnectivityIndex` builds integer edge
+arrays from the baseline once and answers each removal with a boolean mask plus SciPy's
+compiled component routines, falling back to the condensation bitset union only when
+the remaining graph is not already strongly connected.
+
+- Vulnerability batch: **2.61s to 0.33s**, and **9.23s to 0.33s overall, a 28x improvement**
+- Growth per doubling of network size fell from 4.1x to roughly 3.4x
+- Both counts are integers, so every downstream float is bit-identical
+- `reachable_pairs_count` stays as the reference implementation, and the index is
+  checked against it across sparse, dense, disconnected, chain, and isolated-node graphs
+
+### 5. Parsing Each Raw Extract Once Per Run
 The airports builder and the edges builder each loaded the U.S. domestic on-time slice independently, so a full run parsed the largest raw input twice. The nodes builder then read `edges.csv` straight back off the disk the pipeline had just written it to.
 
 - Both builders now accept a preloaded frame, matching the existing shared-load pattern
 - The nodes builder reuses the in-memory edges frame
 - `airports.csv`, `edges.csv`, and `nodes.csv` are byte-identical before and after
 
-**A note on correctness:** every optimization above is structural rather than numerical. Artifact values and CSV column order are unchanged, and two properties the optimizations depend on are pinned by tests: supplying precomputed baseline inputs yields byte-identical scenario rows, and running a scenario never mutates the shared baseline graph.
+**A note on correctness:** every optimization above is structural rather than numerical. Artifact values and CSV column order are unchanged, verified by regenerating `metrics.csv` and diffing it byte for byte. Three properties the optimizations depend on are pinned by tests: supplying precomputed baseline inputs yields byte-identical scenario rows, index-derived connectivity counts match measuring the edited graph, and running a scenario never mutates the shared baseline graph.
 
 ---
 
@@ -228,7 +253,7 @@ ATNA/
 │   ├── setup.sh / setup.bat        # Environment, dependencies, data bootstrap
 │   ├── start.sh / start.bat        # Launch the Streamlit application
 │   └── pipeline.sh / pipeline.bat  # Rebuild all processed artifacts
-├── tests/                      # 56 tests
+├── tests/                      # 72 tests
 ├── data/                       # raw (gitignored), interim, processed, reference
 ├── organization/               # MVP technical specification
 ├── .github/workflows/ci.yml    # Lint + full pipeline + tests on 3.10 to 3.13
@@ -413,7 +438,7 @@ PYTHONPATH=src .venv/bin/python -m pytest tests -q -k "not streamlit"
 
 ### Test Coverage
 
-**56 tests, all passing, no skips**, in roughly 3 seconds end to end.
+**72 tests, all passing, no skips**, in roughly 3 seconds end to end.
 
 - **ETL**: column and join contracts for all three canonical tables, roundtrip writes
 - **Metrics**: centrality math, hub and bridge composites, Leiden partition coverage, route criticality
