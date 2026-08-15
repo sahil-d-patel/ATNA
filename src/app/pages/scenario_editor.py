@@ -14,6 +14,7 @@ from app.data_loader import load_airports_geo, load_edges
 from app.scenario_service import list_route_pairs, run_ui_scenario
 from app.ui.components import show_dataframe_safe, show_empty_state, show_table_count
 from app.ui.formatters import format_integer, format_score
+from app.ui.theme import GEO_LAYOUT, SEQUENTIAL, SEVERITY, apply_page_chrome
 
 _GEO_MAP_KEY = "scenario_geo_map"
 _SS_AIRPORT = "se_airport_id"
@@ -141,7 +142,8 @@ def _build_geo_map(
                     marker={
                         "size": 11,
                         "color": affected["aff_exposure"],
-                        "colorscale": [[0, "#ffd580"], [0.5, "#ff7b00"], [1, "#c0392b"]],
+                        "colorscale": [[0, SEVERITY["negligible"]], [0.5, SEVERITY["moderate"]],
+                                       [1, SEVERITY["severe"]]],
                         "cmin": 0,
                         "cmax": float(affected["aff_exposure"].max()) or 1.0,
                         "showscale": True,
@@ -178,7 +180,7 @@ def _build_geo_map(
             marker={
                 "size": (base["hub_score"].clip(lower=10.0) / 8.0 + 3.0).clip(upper=18.0),
                 "color": base["vulnerability_score"],
-                "colorscale": "Viridis",
+                "colorscale": SEQUENTIAL,
                 "showscale": not has_scenario,
                 "colorbar": {"title": "Vulnerability", "len": 0.5, "y": 0.25},
                 "opacity": node_opacity,
@@ -238,15 +240,7 @@ def _build_geo_map(
             ),
             "x": 0.01, "xanchor": "left", "font": {"size": 13},
         },
-        geo={
-            "scope": "usa",
-            "projection_type": "albers usa",
-            "showland": True, "landcolor": "#f5f5f5",
-            "showocean": True, "oceancolor": "#e9f3fb",
-            "showlakes": True, "lakecolor": "#e9f3fb",
-            "showcoastlines": True, "coastlinecolor": "#c0c0c0",
-            "showframe": False, "bgcolor": "rgba(0,0,0,0)",
-        },
+        geo=GEO_LAYOUT,
         legend={
             "orientation": "h", "yanchor": "bottom", "y": -0.06,
             "xanchor": "left", "x": 0, "font": {"size": 11},
@@ -394,6 +388,7 @@ def _run_airport_scenario(
 
 def render_scenario_editor_page() -> None:
     """Render APP-06 scenario editor with interactive map, history, and revert support."""
+    apply_page_chrome()
     config = load_app_config()
     try:
         airports_geo = load_airports_geo(config)
@@ -474,8 +469,9 @@ def render_scenario_editor_page() -> None:
                 st.rerun()
 
     st.caption(
-        "**Map guide:** dot size = hub score, dot color = vulnerability score (yellow → purple = low → high). "
-        "Orange/red dots = airports affected by the simulated removal. ✕ = removed airport."
+        "**Map guide:** dot size follows hub score and dot color follows vulnerability, "
+        "pale to dark as vulnerability rises. Airports affected by the simulated removal "
+        "are shaded by exposure, teal through amber to red. The removed airport is marked ✕."
     )
 
     # ----------------------------------------------------------------
