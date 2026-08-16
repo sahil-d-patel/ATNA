@@ -24,8 +24,8 @@ This repository contains the complete analysis stack:
 - Graph metrics engine with PageRank, betweenness, and Leiden community detection
 - Scenario engine with 2-hop ripple propagation and per-airport vulnerability scoring
 - Seven-page Streamlit application with Plotly maps and a revertible scenario editor
-- 72 tests covering column contracts, metric math, artifact reproducibility, and headless page rendering
-- Continuous integration running lint and the full pipeline on Python 3.10 through 3.13
+- 80 tests covering column contracts, metric math, artifact reproducibility, loader guards, and headless page rendering
+- Continuous integration running lint, type checks, and the full pipeline on Python 3.10 through 3.13
 
 **Synthetic Demo Dataset (recently added):** The BTS extracts are large, rate limited, and not redistributable, so a fresh clone previously had no data and the application was dead on arrival. A generator now writes BTS-shaped raw CSVs that the unmodified pipeline consumes exactly like production input, which also lets the data-dependent half of the test suite run on any machine.
 
@@ -195,6 +195,7 @@ graph TD
 - **Data Processing**: pandas, NumPy
 - **Configuration**: PyYAML, single checked-in `config/atna.yaml`
 - **Testing**: pytest
+- **Linting and types**: Ruff, mypy
 
 ### Graph and Metrics
 - **Graph Library**: NetworkX
@@ -253,7 +254,7 @@ ATNA/
 │   ├── setup.sh / setup.bat        # Environment, dependencies, data bootstrap
 │   ├── start.sh / start.bat        # Launch the Streamlit application
 │   └── pipeline.sh / pipeline.bat  # Rebuild all processed artifacts
-├── tests/                      # 72 tests
+├── tests/                      # 80 tests
 ├── data/                       # raw (gitignored), interim, processed, reference
 ├── organization/               # MVP technical specification
 ├── .github/workflows/ci.yml    # Lint + full pipeline + tests on 3.10 to 3.13
@@ -404,6 +405,18 @@ The data model, formulas, and CSV column contracts are defined in [`organization
 
 **Why betweenness runs on inverse weight:** NetworkX treats edge weight additively as cost, so a heavily trafficked route must map to a *shorter* structural distance. The graph passed to betweenness therefore uses `1/w` rather than `w`.
 
+### Known Limitations
+
+These are properties of the model, verified against this implementation rather than assumed. The Methodology page in the application carries the full write-up.
+
+**Ripple severity favours low-degree airports.** Removing an airport releases a fixed shock of 100 distributed across its neighbours in proportion to `Share(i,j)`, which normalises by that airport's own total dependency. A hub with 60 neighbours spreads roughly 1.7 to each, below the severity threshold of 10, and scores zero. A peripheral airport with four neighbours concentrates 25 onto each and scores highly. The vulnerability ranking can therefore place mid-size airports above the largest hubs. Read `ripple_severity` as concentration of local dependency, not network-wide importance.
+
+**Connectivity terms go flat on well-connected networks.** `LCC_Loss` and `Reachability_Loss` only separate airports when a removal actually disconnects something. If every airport has two independent paths into the core, both terms collapse to the same constant for every airport and `ImpactScore` reduces to its ripple term alone. Check the spread of those columns before drawing conclusions from impact.
+
+**Percentile ties use the max rule.** The specification defines `P()` but not a tie-breaking rule. Every composite here uses max-rank, so the top value always reaches exactly 100. `ImpactScore` often takes only a handful of distinct values per snapshot, producing large tie groups where comparing two airports is not meaningful.
+
+**Eigenvector centrality requires strong connectivity.** It is a secondary metric, written as an empty column when the snapshot is not strongly connected rather than filled with a misleading value. The pipeline logs a warning when that happens.
+
 ### Generated Artifacts
 
 | Artifact | Contents |
@@ -438,12 +451,12 @@ PYTHONPATH=src .venv/bin/python -m pytest tests -q -k "not streamlit"
 
 ### Test Coverage
 
-**72 tests, all passing, no skips**, in roughly 3 seconds end to end.
+**80 tests, all passing, no skips**, in roughly 3 seconds end to end.
 
 - **ETL**: column and join contracts for all three canonical tables, roundtrip writes
 - **Metrics**: centrality math, hub and bridge composites, Leiden partition coverage, route criticality
 - **Scenarios**: graph-edit isolation, ripple propagation, scoring formulas, artifact schemas, vulnerability integration
-- **Application**: headless `AppTest` smoke coverage rendering all seven pages
+- **Application**: artifact loader guards including schema validation, snapshot mismatch, and cache invalidation, plus headless `AppTest` coverage rendering all seven pages
 - **Optimization guarantees**: precomputed baseline inputs produce byte-identical scenario rows, and running a scenario never mutates the shared baseline graph
 - **Reproducibility**: eigenvector centrality is bitwise stable across repeated calls, so a frozen input month yields a frozen artifact
 
@@ -451,7 +464,7 @@ PYTHONPATH=src .venv/bin/python -m pytest tests -q -k "not streamlit"
 
 ### Continuous Integration
 
-Every push and pull request runs lint and the full suite on Python 3.10, 3.11, 3.12, and 3.13. Because the BTS extracts cannot be published, CI generates the synthetic snapshot and runs ETL, metrics, and scenarios end to end, so the pipeline itself is exercised rather than only the import-safe unit tests.
+Every push and pull request runs Ruff, mypy, and the full suite on Python 3.10, 3.11, 3.12, and 3.13. Because the BTS extracts cannot be published, CI generates the synthetic snapshot and runs ETL, metrics, and scenarios end to end, so the pipeline itself is exercised rather than only the import-safe unit tests.
 
 ---
 
@@ -478,6 +491,7 @@ PYTHONPATH=src .venv/bin/python -m scenarios.run_scenarios
 # Testing and Linting
 PYTHONPATH=src .venv/bin/python -m pytest tests -q
 .venv/bin/ruff check src tests scripts
+.venv/bin/python -m mypy
 
 # Data Acquisition
 python scripts/download/download_bts_data.py
