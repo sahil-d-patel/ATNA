@@ -182,7 +182,7 @@ def render_overview_page() -> None:
 
     st.subheader("Rankings")
     hubs, bridges, vulnerable = st.tabs(["Hubs", "Bridges", "Vulnerability"])
-    for tab, column, caption in [
+    for tab, score_column, caption in [
         (hubs, "hub_score", "Ranked by hub score: traffic strength, PageRank, and degree."),
         (bridges, "bridge_score", "Ranked by bridge score: betweenness on the inverse-weight graph."),
         (vulnerable, "vulnerability_score",
@@ -190,6 +190,6 @@ def render_overview_page() -> None:
     ]:
         with tab:
             st.caption(caption)
-            ranked = geo_df.nlargest(15, column).loc[:, _RANKING_COLUMNS]
+            ranked = geo_df.nlargest(15, score_column).loc[:, _RANKING_COLUMNS]
             if show_table(ranked):
                 show_table_count(ranked, singular_label="airport")

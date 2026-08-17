@@ -14,35 +14,37 @@ try:
 except ModuleNotFoundError:  # pragma: no cover - fallback for non-UI test environments
     class _StreamlitFallback:
         @staticmethod
-        def cache_data(func=None, **_kwargs):  # type: ignore[no-untyped-def]
+        def cache_data(func=None, **_kwargs):
             if func is None:
-                def decorator(inner):  # type: ignore[no-untyped-def]
+                def decorator(inner):
                     return inner
                 return decorator
             return func
 
         @staticmethod
-        def cache_resource(func=None, **_kwargs):  # type: ignore[no-untyped-def]
+        def cache_resource(func=None, **_kwargs):
             if func is None:
-                def decorator(inner):  # type: ignore[no-untyped-def]
+                def decorator(inner):
                     return inner
                 return decorator
             return func
 
         @staticmethod
-        def metric(*_args, **_kwargs):  # type: ignore[no-untyped-def]
+        def metric(*_args, **_kwargs):
             return None
 
         @staticmethod
-        def info(*_args, **_kwargs):  # type: ignore[no-untyped-def]
+        def info(*_args, **_kwargs):
             return None
 
         @staticmethod
-        def dataframe(*_args, **_kwargs):  # type: ignore[no-untyped-def]
+        def dataframe(*_args, **_kwargs):
             return None
 
         @staticmethod
-        def caption(*_args, **_kwargs):  # type: ignore[no-untyped-def]
+        def caption(*_args, **_kwargs):
             return None
 
+    # Rebinding a name that the try branch bound to a module is not expressible in
+    # the type system; the duck-typed fallback is the entire point of this shim.
     st = _StreamlitFallback()  # type: ignore[assignment]

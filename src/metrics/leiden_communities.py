@@ -182,7 +182,7 @@ def _assert_partition_covers_nodes_exactly_once(
 def _to_igraph_directed_weighted(g: nx.DiGraph):
     """Convert NetworkX DiGraph -> igraph Graph(directed) with 'weight' edge attribute."""
     try:
-        import igraph as ig  # type: ignore
+        import igraph as ig
     except Exception as e:  # pragma: no cover
         raise ImportError(
             "python-igraph is required for Leiden communities (pip install python-igraph)."
@@ -209,7 +209,7 @@ def _run_leiden_membership(
     seed: int | None,
 ) -> list[int]:
     try:
-        import leidenalg  # type: ignore
+        import leidenalg
     except Exception as e:  # pragma: no cover
         raise ImportError(
             "leidenalg is required for Leiden communities (pip install leidenalg)."

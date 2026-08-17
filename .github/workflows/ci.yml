@@ -31,10 +31,16 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt ruff
+          pip install -r requirements.txt ruff mypy
 
       - name: Lint
         run: ruff check src tests scripts
+
+      # Type checking runs once, on the newest interpreter, because NumPy ships stubs
+      # using syntax newer than this project's minimum supported Python version.
+      - name: Type check
+        if: matrix.python-version == '3.13'
+        run: mypy
 
       # The BTS extracts are large and not redistributable, so CI runs the same
       # pipeline against the synthetic demo snapshot. This exercises ETL, metrics,

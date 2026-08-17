@@ -43,3 +43,23 @@ known-first-party = ["app", "etl", "metrics", "scenarios"]
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 testpaths = ["tests"]
+
+[tool.mypy]
+# Deliberately unpinned: numpy ships stubs using syntax newer than our minimum
+# supported version, so mypy runs against the interpreter it is invoked with.
+files = ["src"]
+ignore_missing_imports = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+no_implicit_optional = true
+# The value here is catching genuine mistakes - shadowed names, unguarded Optionals -
+# rather than achieving full annotation coverage on a codebase that leans on pandas
+# and Streamlit, whose stubs are permissive by necessity.
+disallow_untyped_defs = false
+check_untyped_defs = false
+
+[[tool.mypy.overrides]]
+# Streamlit's overloads do not model column_config dictionaries, and its stubs return
+# DeltaGenerator where the runtime returns context managers.
+module = ["app.ui.components", "app.pages.*"]
+disable_error_code = ["call-overload", "arg-type"]

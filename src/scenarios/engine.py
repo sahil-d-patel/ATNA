@@ -55,29 +55,32 @@ def run_scenario(
         post_graph, edit = remove_airport(
             baseline_graph, payload, snapshot_id=snapshot_id, copy=False
         )
+        # remove_airport always populates this field on the airport branch; bind it once
+        # so the invariant is stated rather than re-asserted at every use.
+        removed_airport = int(edit.removed_airport_id or 0)
         exposure_by_airport = airport_removal_exposure(
             baseline_graph,
-            removed_airport_id=int(edit.removed_airport_id),
+            removed_airport_id=removed_airport,
             precomputed_shares=precomputed_shares,
         )
-        edited_airports = [int(edit.removed_airport_id)]
+        edited_airports = [removed_airport]
         edited_routes: list[dict[str, int]] = []
     else:
         post_graph, edit = remove_route(
             baseline_graph, payload, snapshot_id=snapshot_id, copy=False
         )
+        # Likewise, remove_route always populates both endpoints on this branch.
+        removed_origin = int(edit.removed_origin_id or 0)
+        removed_destination = int(edit.removed_destination_id or 0)
         exposure_by_airport = route_removal_exposure(
             baseline_graph,
-            origin_id=int(edit.removed_origin_id),
-            destination_id=int(edit.removed_destination_id),
+            origin_id=removed_origin,
+            destination_id=removed_destination,
             precomputed_dependency=precomputed_dependency,
         )
         edited_airports = []
         edited_routes = [
-            {
-                "origin_id": int(edit.removed_origin_id),
-                "destination_id": int(edit.removed_destination_id),
-            }
+            {"origin_id": removed_origin, "destination_id": removed_destination}
         ]
 
     scenario_id = make_scenario_id(
