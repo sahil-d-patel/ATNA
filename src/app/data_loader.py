@@ -125,14 +125,18 @@ def _snapshot_filter(df: pd.DataFrame, snapshot_id: str) -> pd.DataFrame:
 
 @st.cache_data(show_spinner=False)
 def _read_artifact_cached(
-    csv_path: str, artifact_name: str, _mtime_ns: int, snapshot_id: str | None
+    csv_path: str, artifact_name: str, mtime_ns: int, snapshot_id: str | None
 ) -> pd.DataFrame:
     """Read, validate, and snapshot-filter one artifact.
 
-    ``_mtime_ns`` participates in the cache key so a pipeline rebuild is picked up on
+    ``mtime_ns`` participates in the cache key so a pipeline rebuild is picked up on
     the next interaction. Keying on the path alone made the application keep serving
     artifacts from a previous build until the server was restarted, which defeats the
     point of rebuilding.
+
+    The name deliberately has no leading underscore: Streamlit excludes
+    underscore-prefixed parameters from the cache key, which would silently restore
+    exactly the staleness this argument exists to prevent.
     """
     frame = _read_csv_checked(Path(csv_path), artifact_name, REQUIRED_COLUMNS[artifact_name])
     return frame if snapshot_id is None else _snapshot_filter(frame, snapshot_id)

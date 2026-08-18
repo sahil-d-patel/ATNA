@@ -72,8 +72,12 @@ def load_app_config(path: Path | str | None = None) -> AppConfig:
 
 
 @st.cache_resource(show_spinner=False)
-def _load_app_config_cached(config_path_str: str, _mtime_ns: int) -> AppConfig:
-    """Parse and resolve the config. ``AppConfig`` is frozen, so sharing it is safe."""
+def _load_app_config_cached(config_path_str: str, mtime_ns: int) -> AppConfig:
+    """Parse and resolve the config. ``AppConfig`` is frozen, so sharing it is safe.
+
+    ``mtime_ns`` must not be underscore-prefixed: Streamlit drops such parameters from
+    the cache key, which would stop an edited config from ever being reloaded.
+    """
     config_path = Path(config_path_str)
 
     with open(config_path, encoding="utf-8") as f:
