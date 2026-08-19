@@ -12,7 +12,7 @@ import streamlit as st
 from app.config import load_app_config
 from app.data_loader import load_airports_geo, load_edges
 from app.scenario_service import list_route_pairs, run_ui_scenario
-from app.ui.components import show_dataframe_safe, show_empty_state, show_table_count
+from app.ui.components import show_empty_state, show_table, show_table_count
 from app.ui.formatters import format_integer, format_score
 from app.ui.theme import GEO_LAYOUT, SEQUENTIAL, SEVERITY, apply_page_chrome
 
@@ -332,7 +332,7 @@ def _render_exposure_outputs(exposure_df: pd.DataFrame) -> None:
     display = exposure_df.loc[:, ["airport_id", "hop_level", "exposure_score", "exposure_rank"]].copy()
     display["airport_id"] = display["airport_id"].map(format_integer)
     display["exposure_score"] = display["exposure_score"].map(format_score)
-    if show_dataframe_safe(display, message="No affected airports for this scenario."):
+    if show_table(display, message="No affected airports for this scenario."):
         show_table_count(display, singular_label="airport")
 
     hop_counts = (
@@ -567,7 +567,7 @@ def render_scenario_editor_page() -> None:
             result_table = _scenario_table(result["scenario_row"]).copy()
             for col in ("impact_score", "network_health", "lcc_loss", "reachability_loss", "ripple_severity"):
                 result_table[col] = result_table[col].map(format_score)
-            show_dataframe_safe(result_table)
+            show_table(result_table)
 
         _render_exposure_outputs(result["exposure_df"])
         st.divider()
@@ -578,7 +578,18 @@ def render_scenario_editor_page() -> None:
     st.subheader("Route removal")
     st.caption("Remove a specific directed route and run the scenario engine.")
 
-    route_labels = {f"{o} \u2192 {d}": (o, d) for o, d in route_pairs}
+    # Codes, not DOT ids: the airport branch already labels by code, and a dropdown of
+    # numeric pairs is unusable for choosing a route.
+    code_by_id = dict(
+        zip(
+            airports_geo["airport_id"].astype(int),
+            airports_geo["iata_code"].astype(str),
+            strict=True,
+        )
+    )
+    route_labels = {
+        f"{code_by_id.get(o, o)} \u2192 {code_by_id.get(d, d)}": (o, d) for o, d in route_pairs
+    }
     with st.form("route-removal-form"):
         selected_route_label = st.selectbox(
             "Route to remove",
@@ -598,15 +609,15 @@ def render_scenario_editor_page() -> None:
         except Exception as exc:  # pragma: no cover
             st.error(f"Scenario run failed: {exc}")
             return
-        label = f"Route: {origin_id} \u2192 {destination_id}"
-        entry: dict[str, Any] = {
+        label = f"Route: {code_by_id.get(origin_id, origin_id)} \u2192 {code_by_id.get(destination_id, destination_id)}"
+        route_entry: dict[str, Any] = {
             "airport_id": None,
             "label": label,
             "scenario_type": "route",
             "scenario_row": scenario_row,
             "exposure_df": exp_df,
         }
-        _push_history(entry)
+        _push_history(route_entry)
         st.session_state[_SS_AIRPORT] = None
         st.session_state[_SS_TYPE] = "route"
         st.session_state[_SS_RESULT] = {"scenario_row": scenario_row, "exposure_df": exp_df}

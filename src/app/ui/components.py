@@ -153,18 +153,6 @@ def show_table(
     return True
 
 
-def show_dataframe_safe(
-    df: pd.DataFrame,
-    *,
-    columns: Iterable[str] | None = None,
-    message: str = EMPTY_FILTER_MESSAGE,
-    use_container_width: bool = True,
-) -> bool:
-    """Backwards-compatible alias for :func:`show_table`."""
-    del use_container_width  # width is always "stretch" now
-    return show_table(df, columns=columns, message=message)
-
-
 def show_table_count(df: pd.DataFrame, singular_label: str = "row") -> None:
     """Render row-count caption for currently displayed table."""
     count = len(df.index)

@@ -43,9 +43,9 @@ from etl.config import AtnaConfig, load_config
 
 EARTH_RADIUS_MI = 3958.8
 
-# Gravity-model tuning, calibrated so the month lands near 400k flight legs across
-# ~1000 directed routes — the same order of magnitude a real BTS month shows for
-# airports of this size.
+# Gravity-model tuning, calibrated together with the service rules below so the month
+# lands near 310k flight legs across roughly 590 directed routes, the same order of
+# magnitude a real BTS month shows for airports of this size.
 GRAVITY_SCALE = 2.4e6
 DISTANCE_EXPONENT = 1.20
 MIN_ROUTE_FLIGHTS = 30
