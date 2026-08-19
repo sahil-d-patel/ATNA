@@ -1,6 +1,6 @@
 # ATNA MVP Technical Specification and Workflow
 ## Air Traffic Network Analysis
-## Locked MVP Scope, Build Plan, Data Model, Metrics
+## MVP Scope, Build Plan, Data Model, and Metrics
 
 Version: 1.0  
 Status: Locked MVP Spec  
@@ -874,7 +874,8 @@ Simple formulas make the app easier to implement, explain, validate, and demo.
 
 ---
 
-# 17. Final Lock Statement
+
+# 16. Final Lock Statement
 
 This document locks the ATNA MVP as:
 

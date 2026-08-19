@@ -292,27 +292,30 @@ If BTS downloads files with generic names, rename them automatically.
 ---
 
 ## Quality bar
-I want an implementation that is:
-- reproducible
-- cleanly organized
-- explicit about assumptions
-- robust to partial failures
-- easy for a student team to run
 
-The downloader should fail loudly when something is missing.
-Do not pretend a missing month downloaded successfully.
+The implementation must be:
+
+- reproducible: the same configuration produces the same raw layout
+- cleanly organized: one directory per source, one file per month
+- explicit about assumptions: every exclusion rule stated in the manifest
+- robust to partial failures: a failed month is reported, never skipped silently
+- straightforward for a student team to run end to end
+
+The downloader fails loudly when something is missing. A month that did not download
+must never be recorded as successful.
 
 ---
 
-## Final deliverable expectation
-A complete download pass produces:
-1. the folder structure
-2. the download scripts
-3. the manifest files
-4. a clear README
-5. as many raw downloads completed as possible
-6. a precise note describing any remaining manual step
+## Deliverables
 
-Use Python for scripts.
-Prefer Playwright if browser automation is needed.
-Keep the code readable and heavily validated.
+A complete download pass produces:
+
+1. the folder structure described above
+2. the download and verification scripts under `scripts/download/`
+3. the manifest files under `data/reference/`
+4. documentation of the data sources and field selections
+5. as many raw monthly files as the source will serve
+6. a precise note describing any step that still has to be completed by hand
+
+Scripts are written in Python. Browser automation, where unavoidable, uses Playwright.
+Validation is preferred over brevity: this data is fetched rarely and read often.

@@ -2,7 +2,7 @@
 
 **Source of truth:** `organization/ATNA_MVP_Technical_Spec_and_Workflow.md` §13.1–§13.4.  
 **snapshot_id:** `2025-12` (from `config/atna.yaml`).  
-**Gap policy (spec §16.7 QA prompt):** Items marked **Waived** or **Note** separate **implementation defects** from **scope creep** (deferred features) or **subjective / manual** sign-off.
+**Gap policy:** Items marked **Waived** or **Note** separate **implementation defects** from **scope creep** (deferred features) or **subjective / manual** sign-off.
 
 ---
 

@@ -80,8 +80,12 @@ playwright/.cache/
 Thumbs.db
 desktop.ini
 
+# Editor and local tooling (force-add shared .vscode settings if needed)
 .vscode/
 .idea/
+
+# Local planning and working notes, not part of the published project
+.planning/
 
 # --- Misc ---
 *.swp
