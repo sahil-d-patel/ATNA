@@ -4,19 +4,26 @@ from __future__ import annotations
 
 from typing import Any
 
-import numpy as np
 import pandas as pd
-import plotly.graph_objects as go
 import streamlit as st
 
-from app.config import load_app_config
+from app.config import AppConfig, load_app_config
 from app.data_loader import load_airports_geo, load_edges
 from app.scenario_service import list_route_pairs, run_ui_scenario
 from app.ui.components import show_empty_state, show_table, show_table_count
 from app.ui.formatters import format_integer, format_score
-from app.ui.theme import GEO_LAYOUT, SEQUENTIAL, SEVERITY, apply_page_chrome
+from app.ui.scenario_map import build_scenario_map
+from app.ui.theme import apply_page_chrome, page_header
 
 _GEO_MAP_KEY = "scenario_geo_map"
+_SEARCH_PLACEHOLDER = "— search by name or code —"
+_SCORE_COLUMNS = (
+    "impact_score",
+    "network_health",
+    "lcc_loss",
+    "reachability_loss",
+    "ripple_severity",
+)
 _SS_AIRPORT = "se_airport_id"
 _SS_RESULT = "se_result"
 _SS_TYPE = "se_scenario_type"
@@ -77,180 +84,6 @@ def _apply_state(entry: dict[str, Any] | None) -> None:
             "scenario_row": entry["scenario_row"],
             "exposure_df": entry["exposure_df"],
         }
-
-
-# ---------------------------------------------------------------------------
-# Map builder
-# ---------------------------------------------------------------------------
-
-def _build_geo_map(
-    airports_geo: pd.DataFrame,
-    edges_df: pd.DataFrame,
-    weight_threshold: float,
-    selected_airport_id: int | None,
-    exposure_df: pd.DataFrame | None,
-) -> go.Figure:
-    fig = go.Figure()
-    airport_lookup = airports_geo.dropna(subset=["latitude", "longitude"]).set_index("airport_id")
-
-    # Route lines (filtered by weight). Interleave endpoint coordinates as
-    # [origin, destination, None, ...] so each route is a separate line segment,
-    # built vectorially rather than with a Python-level row loop.
-    heavy_edges = edges_df.loc[edges_df["analysis_weight"] >= weight_threshold]
-    valid_edges = heavy_edges.loc[
-        heavy_edges["origin_id"].isin(airport_lookup.index)
-        & heavy_edges["destination_id"].isin(airport_lookup.index)
-    ]
-    origins = valid_edges["origin_id"]
-    destinations = valid_edges["destination_id"]
-    separators = np.full(len(valid_edges), None, dtype=object)
-    lats = np.column_stack([
-        airport_lookup.loc[origins, "latitude"].to_numpy(),
-        airport_lookup.loc[destinations, "latitude"].to_numpy(),
-        separators,
-    ]).ravel().tolist()
-    lons = np.column_stack([
-        airport_lookup.loc[origins, "longitude"].to_numpy(),
-        airport_lookup.loc[destinations, "longitude"].to_numpy(),
-        separators,
-    ]).ravel().tolist()
-
-    fig.add_trace(
-        go.Scattergeo(
-            lat=lats, lon=lons, mode="lines",
-            line={"width": 0.4, "color": "rgba(80,80,80,0.18)"},
-            hoverinfo="skip", showlegend=False,
-        )
-    )
-
-    # Affected airports overlay
-    affected_ids: set[int] = set()
-    if exposure_df is not None and not exposure_df.empty:
-        affected_ids = {int(i) for i in exposure_df["airport_id"]}
-        exp_lookup = exposure_df.set_index("airport_id")
-        affected = airports_geo.loc[
-            airports_geo["airport_id"].isin(affected_ids)
-        ].dropna(subset=["latitude", "longitude"]).copy()
-
-        if not affected.empty:
-            affected["aff_exposure"] = affected["airport_id"].map(exp_lookup["exposure_score"]).fillna(0)
-            affected["aff_hop"] = affected["airport_id"].map(exp_lookup["hop_level"]).fillna(2).astype(int)
-            fig.add_trace(
-                go.Scattergeo(
-                    lat=affected["latitude"], lon=affected["longitude"],
-                    mode="markers",
-                    marker={
-                        "size": 11,
-                        "color": affected["aff_exposure"],
-                        "colorscale": [[0, SEVERITY["negligible"]], [0.5, SEVERITY["moderate"]],
-                                       [1, SEVERITY["severe"]]],
-                        "cmin": 0,
-                        "cmax": float(affected["aff_exposure"].max()) or 1.0,
-                        "showscale": True,
-                        "colorbar": {"title": "Exposure", "x": 1.02, "len": 0.5, "y": 0.75},
-                        "line": {"width": 1.2, "color": "#7f0000"},
-                        "opacity": 0.92,
-                    },
-                    customdata=affected[["airport_id", "iata_code", "airport_name", "aff_hop", "aff_exposure"]].values,
-                    text=[
-                        (
-                            f"<b>AFFECTED</b>: {row.iata_code} (ID {int(row.airport_id)})<br>"
-                            f"{row.airport_name}<br>"
-                            f"Hop {int(row.aff_hop)} — exposure {row.aff_exposure:.1f}"
-                        )
-                        for row in affected.itertuples(index=False)
-                    ],
-                    hoverinfo="text", name="Affected airports", showlegend=True,
-                )
-            )
-
-    # Baseline airports (dimmed when a scenario is active)
-    base = airports_geo.loc[~airports_geo["airport_id"].isin(affected_ids)]
-    if selected_airport_id is not None:
-        base = base.loc[base["airport_id"] != selected_airport_id]
-    base = base.dropna(subset=["latitude", "longitude"])
-
-    has_scenario = selected_airport_id is not None or len(affected_ids) > 0
-    node_opacity = 0.35 if has_scenario else 0.9
-
-    fig.add_trace(
-        go.Scattergeo(
-            lat=base["latitude"], lon=base["longitude"],
-            mode="markers",
-            marker={
-                "size": (base["hub_score"].clip(lower=10.0) / 8.0 + 3.0).clip(upper=18.0),
-                "color": base["vulnerability_score"],
-                "colorscale": SEQUENTIAL,
-                "showscale": not has_scenario,
-                "colorbar": {"title": "Vulnerability", "len": 0.5, "y": 0.25},
-                "opacity": node_opacity,
-                "line": {"width": 0.5, "color": "white"},
-            },
-            customdata=base[["airport_id", "iata_code", "airport_name"]].values,
-            text=[
-                (
-                    f"<b>{row.iata_code}</b> — {row.airport_name}<br>"
-                    f"ID: {int(row.airport_id)}<br>"
-                    f"Vulnerability: {row.vulnerability_score:.1f}  |  Community: {int(row.leiden_community_id)}<br>"
-                    f"<i>Click to simulate removal</i>"
-                )
-                for row in base.itertuples(index=False)
-            ],
-            hoverinfo="text", name="Airports", showlegend=True,
-        )
-    )
-
-    # Removed airport marker (red X)
-    if selected_airport_id is not None:
-        removed = airports_geo.loc[
-            airports_geo["airport_id"] == selected_airport_id
-        ].dropna(subset=["latitude", "longitude"])
-        if not removed.empty:
-            r = removed.iloc[0]
-            fig.add_trace(
-                go.Scattergeo(
-                    lat=[r["latitude"]], lon=[r["longitude"]],
-                    mode="markers+text",
-                    marker={
-                        "symbol": "x", "size": 18, "color": "#e74c3c",
-                        "line": {"width": 2.5, "color": "#7f0000"}, "opacity": 1.0,
-                    },
-                    text=[f"✕ {r['iata_code']}"],
-                    textposition="top center",
-                    textfont={"size": 11, "color": "#c0392b"},
-                    hovertext=(
-                        f"<b>REMOVED</b>: {r['iata_code']} (ID {int(r['airport_id'])})<br>"
-                        f"{r['airport_name']}<br><i>Click Undo or Restore network below to revert</i>"
-                    ),
-                    hoverinfo="text", name="Removed airport", showlegend=True,
-                )
-            )
-
-    fig.update_layout(
-        # Plotly resets camera state whenever a figure is replaced, and this figure is
-        # rebuilt on every rerun. A constant uirevision tells plotly.js to preserve the
-        # user's zoom and pan across those rebuilds, so simulating a removal no longer
-        # throws the map back to the full-country view.
-        uirevision="scenario-editor-map",
-        title={
-            "text": (
-                "Click any airport to simulate its removal from the network"
-                if not has_scenario
-                else "Simulation active — click another airport to re-run, or revert below"
-            ),
-            "x": 0.01, "xanchor": "left", "font": {"size": 13},
-        },
-        geo=GEO_LAYOUT,
-        legend={
-            "orientation": "h", "yanchor": "bottom", "y": -0.06,
-            "xanchor": "left", "x": 0, "font": {"size": 11},
-        },
-        margin={"l": 0, "r": 0, "t": 36, "b": 0},
-        height=530,
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
-    )
-    return fig
 
 
 # ---------------------------------------------------------------------------
@@ -386,6 +219,232 @@ def _run_airport_scenario(
 # Page entry point
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# Page sections
+#
+# Each section owns one region of the page and the state transitions that region
+# can trigger. Splitting them apart keeps the orchestrating render function short
+# enough to read in one pass, and makes it obvious which interactions rerun.
+# ---------------------------------------------------------------------------
+
+def _render_controls(
+    airports_geo: pd.DataFrame, edges_df: pd.DataFrame, config: AppConfig
+) -> float:
+    """Quick-find search and the route-weight filter. Returns the weight threshold."""
+    search_column, slider_column = st.columns([2, 3])
+
+    with search_column:
+        located = airports_geo.dropna(subset=["latitude", "longitude"])
+        options = sorted(
+            (located["iata_code"].astype(str) + " — " + located["airport_name"].astype(str)).tolist()
+        )
+        selected = st.selectbox(
+            "Quick-find airport",
+            options=[_SEARCH_PLACEHOLDER, *options],
+            index=0,
+            help="Type to filter. Select an airport then click Simulate.",
+        )
+        if selected != _SEARCH_PLACEHOLDER:
+            iata_code = selected.split(" — ")[0]
+            match = airports_geo.loc[airports_geo["iata_code"] == iata_code]
+            if not match.empty and st.button("Simulate removal", key="quick_find_btn"):
+                _run_airport_scenario(airports_geo, int(match.iloc[0]["airport_id"]), config)
+                st.rerun()
+
+    with slider_column:
+        max_weight = float(edges_df["analysis_weight"].max())
+        return st.slider(
+            "Show routes with analysis weight ≥",
+            min_value=0.0, max_value=max_weight, value=5.0, step=0.1,
+            help="Higher = only busiest routes shown. Does not affect the simulation.",
+        )
+
+
+def _render_map(
+    airports_geo: pd.DataFrame,
+    edges_df: pd.DataFrame,
+    weight_threshold: float,
+    selected_airport_id: int | None,
+    exposure_df: pd.DataFrame | None,
+    config: AppConfig,
+) -> None:
+    """Draw the map and turn a click on an airport into a scenario run."""
+    figure = build_scenario_map(
+        airports_geo, edges_df, weight_threshold, selected_airport_id, exposure_df
+    )
+    event = st.plotly_chart(
+        figure, on_select="rerun", selection_mode=["points"],
+        key=_GEO_MAP_KEY, use_container_width=True,
+    )
+
+    selection = getattr(event, "selection", None)
+    points = list(getattr(selection, "points", None) or [])
+    if points:
+        customdata = points[0].get("customdata") or []
+        if customdata:
+            clicked_id = int(customdata[0])
+            # Re-running the airport already simulated would only reset the view.
+            if clicked_id != selected_airport_id:
+                _run_airport_scenario(airports_geo, clicked_id, config)
+                st.rerun()
+
+    st.caption(
+        "**Map guide:** dot size follows hub score and dot color follows vulnerability, "
+        "pale to dark as vulnerability rises. Airports affected by the simulated removal "
+        "are shaded by exposure, teal through amber to red. The removed airport is marked ✕."
+    )
+
+
+def _render_status_bar(
+    airports_geo: pd.DataFrame,
+    selected_airport_id: int | None,
+    result: dict[str, Any] | None,
+    history: list[dict[str, Any]],
+) -> None:
+    """Current simulation summary, with undo and restore."""
+    status_column, undo_column, restore_column = st.columns([5, 1, 1])
+
+    with status_column:
+        if selected_airport_id is not None and result:
+            row = airports_geo.loc[airports_geo["airport_id"] == selected_airport_id]
+            if not row.empty:
+                airport = row.iloc[0]
+                impact = float(result["scenario_row"]["impact_score"])
+                severity_label, _ = _severity_info(impact)
+                st.info(
+                    f"**Simulating removal of:** {airport['iata_code']} — {airport['airport_name']}  \n"
+                    f"Vulnerability {airport['vulnerability_score']:.1f} · "
+                    f"Community {int(airport['leiden_community_id'])} · "
+                    f"{severity_label} (impact {impact:.1f})"
+                )
+        elif result and st.session_state[_SS_TYPE] == "route":
+            st.info("**Route removal simulated.** See results below.")
+        else:
+            st.info("No active simulation. Click an airport on the map or use quick-find above.")
+
+    with undo_column:
+        st.write("")  # vertical alignment against the status box
+        if st.button(
+            "↩ Undo", key="undo_btn", disabled=not history,
+            help="Revert to the previous scenario, or to baseline if only one step back.",
+            use_container_width=True,
+        ):
+            history.pop()
+            _apply_state(history[-1] if history else None)
+            st.rerun()
+
+    with restore_column:
+        st.write("")
+        if st.button(
+            "Restore network", key="restore_btn", disabled=result is None,
+            help="Clear all simulations and return the map to its baseline state.",
+            use_container_width=True,
+        ):
+            st.session_state[_SS_HISTORY] = []
+            _apply_state(None)
+            st.rerun()
+
+
+def _render_history(history: list[dict[str, Any]]) -> None:
+    """Past runs, each restorable."""
+    if not history:
+        with st.expander("Scenario history (0 runs)"):
+            st.caption("No scenarios run yet. Simulations appear here as you explore.")
+        return
+
+    plural = "s" if len(history) != 1 else ""
+    with st.expander(f"Scenario history ({len(history)} run{plural})"):
+        st.caption("Click **Load** on any row to restore that simulation.")
+        for offset, entry in enumerate(reversed(history)):
+            position = len(history) - 1 - offset
+            impact = float(entry["scenario_row"]["impact_score"])
+            health = float(entry["scenario_row"]["network_health"])
+            severity_label, _ = _severity_info(impact)
+            columns = st.columns([3, 2, 2, 2, 1])
+            columns[0].write(f"**{entry['label']}**")
+            columns[1].write(f"Impact: `{impact:.1f}`")
+            columns[2].write(f"Health: `{health:.1f}`")
+            columns[3].write(severity_label)
+            if columns[4].button("Load", key=f"hist_load_{position}"):
+                _apply_state(history[position])
+                st.rerun()
+
+
+def _render_results(result: dict[str, Any]) -> None:
+    """Score cards, the raw scenario row, and the ripple exposure table."""
+    _render_metric_cards(result["scenario_row"])
+
+    with st.expander("Raw scenario data"):
+        table = _scenario_table(result["scenario_row"]).copy()
+        for column in _SCORE_COLUMNS:
+            table[column] = table[column].map(format_score)
+        show_table(table)
+
+    _render_exposure_outputs(result["exposure_df"])
+
+
+def _render_route_form(
+    airports_geo: pd.DataFrame, route_pairs: list[tuple[int, int]], config: AppConfig
+) -> None:
+    """Route removal by explicit selection, for routes with no obvious map target."""
+    st.subheader("Route removal")
+    st.caption("Remove a specific directed route and run the scenario engine.")
+
+    # Codes, not DOT ids: a dropdown of numeric pairs is unusable for choosing a route.
+    code_by_id = dict(
+        zip(
+            airports_geo["airport_id"].astype(int),
+            airports_geo["iata_code"].astype(str),
+            strict=True,
+        )
+    )
+    route_labels = {
+        f"{code_by_id.get(origin, origin)} → {code_by_id.get(destination, destination)}":
+            (origin, destination)
+        for origin, destination in route_pairs
+    }
+
+    with st.form("route-removal-form"):
+        selected_label = st.selectbox("Route to remove", options=list(route_labels), index=0)
+        submitted = st.form_submit_button("Run route removal scenario")
+
+    if not submitted:
+        return
+
+    origin_id, destination_id = route_labels[selected_label]
+    try:
+        scenario_row, exposure_df = run_ui_scenario(
+            scenario_type="route_removal",
+            payload={"origin_id": int(origin_id), "destination_id": int(destination_id)},
+            config=config,
+        )
+    except Exception as exc:  # pragma: no cover - engine failures are surfaced, not swallowed
+        st.error(f"Scenario run failed: {exc}")
+        return
+
+    label = (
+        f"Route: {code_by_id.get(origin_id, origin_id)} → "
+        f"{code_by_id.get(destination_id, destination_id)}"
+    )
+    _push_history(
+        {
+            "airport_id": None,
+            "label": label,
+            "scenario_type": "route",
+            "scenario_row": scenario_row,
+            "exposure_df": exposure_df,
+        }
+    )
+    st.session_state[_SS_AIRPORT] = None
+    st.session_state[_SS_TYPE] = "route"
+    st.session_state[_SS_RESULT] = {"scenario_row": scenario_row, "exposure_df": exposure_df}
+    st.rerun()
+
+
+# ---------------------------------------------------------------------------
+# Page
+# ---------------------------------------------------------------------------
+
 def render_scenario_editor_page() -> None:
     """Render APP-06 scenario editor with interactive map, history, and revert support."""
     apply_page_chrome()
@@ -398,230 +457,38 @@ def render_scenario_editor_page() -> None:
         st.error(f"Unable to load scenario artifacts: {exc}")
         return
 
-    st.title("Scenario Editor")
-    st.caption(
-        f"Snapshot `{config.snapshot_id}` — simulate the effect of removing an airport or route. "
-        "Click directly on the map, or use the quick-find search below."
+    page_header(
+        "Scenario Editor",
+        "Simulate removing an airport or route. Click the map, or use quick-find below.",
+        meta=f"Snapshot {config.snapshot_id}",
     )
 
     _init_state()
-
     selected_airport_id: int | None = st.session_state[_SS_AIRPORT]
-    result: dict | None = st.session_state[_SS_RESULT]
-    history: list[dict] = st.session_state[_SS_HISTORY]
+    result: dict[str, Any] | None = st.session_state[_SS_RESULT]
+    history: list[dict[str, Any]] = st.session_state[_SS_HISTORY]
 
-    # ----------------------------------------------------------------
-    # Quick-find + route weight controls (above map)
-    # ----------------------------------------------------------------
-    col_search, col_slider = st.columns([2, 3])
-
-    with col_search:
-        geo_labeled = airports_geo.dropna(subset=["latitude", "longitude"])
-        airport_options = sorted(
-            (
-                geo_labeled["iata_code"].astype(str)
-                + " — "
-                + geo_labeled["airport_name"].astype(str)
-            ).tolist()
-        )
-        search_label = st.selectbox(
-            "Quick-find airport",
-            options=["— search by name or code —", *airport_options],
-            index=0,
-            help="Type to filter. Select an airport then click Simulate.",
-        )
-        if search_label != "— search by name or code —":
-            iata_code = search_label.split(" — ")[0]
-            match = airports_geo.loc[airports_geo["iata_code"] == iata_code]
-            if not match.empty and st.button("Simulate removal", key="quick_find_btn"):
-                clicked_id = int(match.iloc[0]["airport_id"])
-                _run_airport_scenario(airports_geo, clicked_id, config)
-                st.rerun()
-
-    with col_slider:
-        max_weight = float(edges_df["analysis_weight"].max())
-        weight_threshold = st.slider(
-            "Show routes with analysis weight ≥",
-            min_value=0.0, max_value=max_weight, value=5.0, step=0.1,
-            help="Higher = only busiest routes shown. Does not affect the simulation.",
-        )
-
-    # ----------------------------------------------------------------
-    # Interactive map
-    # ----------------------------------------------------------------
-    exposure_df_for_map = result["exposure_df"] if result else None
-    fig = _build_geo_map(airports_geo, edges_df, weight_threshold, selected_airport_id, exposure_df_for_map)
-    event = st.plotly_chart(
-        fig, on_select="rerun", selection_mode=["points"],
-        key=_GEO_MAP_KEY, use_container_width=True,
+    weight_threshold = _render_controls(airports_geo, edges_df, config)
+    _render_map(
+        airports_geo, edges_df, weight_threshold, selected_airport_id,
+        result["exposure_df"] if result else None, config,
     )
-
-    # Handle map click
-    selection = getattr(event, "selection", None)
-    points = list(getattr(selection, "points", None) or [])
-    if points:
-        pt = points[0]
-        customdata = pt.get("customdata") or []
-        if customdata:
-            clicked_id = int(customdata[0])
-            if clicked_id != selected_airport_id:
-                _run_airport_scenario(airports_geo, clicked_id, config)
-                st.rerun()
-
-    st.caption(
-        "**Map guide:** dot size follows hub score and dot color follows vulnerability, "
-        "pale to dark as vulnerability rises. Airports affected by the simulated removal "
-        "are shaded by exposure, teal through amber to red. The removed airport is marked ✕."
-    )
-
-    # ----------------------------------------------------------------
-    # Status bar + revert controls
-    # ----------------------------------------------------------------
-    status_col, btn_col1, btn_col2 = st.columns([5, 1, 1])
-
-    with status_col:
-        if selected_airport_id is not None and result:
-            airport_row = airports_geo.loc[airports_geo["airport_id"] == selected_airport_id]
-            if not airport_row.empty:
-                r = airport_row.iloc[0]
-                impact = float(result["scenario_row"]["impact_score"])
-                severity_label, _ = _severity_info(impact)
-                st.info(
-                    f"**Simulating removal of:** {r['iata_code']} — {r['airport_name']}  \n"
-                    f"Vulnerability {r['vulnerability_score']:.1f} · Community {int(r['leiden_community_id'])} · "
-                    f"{severity_label} (impact {impact:.1f})"
-                )
-        elif result and st.session_state[_SS_TYPE] == "route":
-            st.info("**Route removal simulated.** See results below.")
-        else:
-            st.info("No active simulation. Click an airport on the map or use quick-find above.")
-
-    with btn_col1:
-        st.write("")  # vertical alignment spacer
-        undo_disabled = len(history) == 0
-        if st.button(
-            "↩ Undo",
-            key="undo_btn",
-            disabled=undo_disabled,
-            help="Revert to the previous scenario, or to baseline if only one step back.",
-            use_container_width=True,
-        ):
-            history.pop()
-            _apply_state(history[-1] if history else None)
-            st.rerun()
-
-    with btn_col2:
-        st.write("")
-        restore_disabled = result is None
-        if st.button(
-            "Restore network",
-            key="restore_btn",
-            disabled=restore_disabled,
-            help="Clear all simulations and return the map to its baseline state.",
-            use_container_width=True,
-        ):
-            st.session_state[_SS_HISTORY] = []
-            _apply_state(None)
-            st.rerun()
-
-    # ----------------------------------------------------------------
-    # Scenario history panel
-    # ----------------------------------------------------------------
-    if history:
-        with st.expander(f"Scenario history ({len(history)} run{'s' if len(history) != 1 else ''})"):
-            st.caption("Click **Load** on any row to restore that simulation.")
-            for idx, entry in enumerate(reversed(history)):
-                pos = len(history) - 1 - idx
-                impact = float(entry["scenario_row"]["impact_score"])
-                health = float(entry["scenario_row"]["network_health"])
-                severity_label, _ = _severity_info(impact)
-                h_col1, h_col2, h_col3, h_col4, h_col5 = st.columns([3, 2, 2, 2, 1])
-                with h_col1:
-                    st.write(f"**{entry['label']}**")
-                with h_col2:
-                    st.write(f"Impact: `{impact:.1f}`")
-                with h_col3:
-                    st.write(f"Health: `{health:.1f}`")
-                with h_col4:
-                    st.write(severity_label)
-                with h_col5:
-                    if st.button("Load", key=f"hist_load_{pos}"):
-                        _apply_state(history[pos])
-                        st.rerun()
-    else:
-        with st.expander("Scenario history (0 runs)"):
-            st.caption("No scenarios run yet. Simulations appear here as you explore.")
+    _render_status_bar(airports_geo, selected_airport_id, result, history)
+    _render_history(history)
 
     st.divider()
 
-    # ----------------------------------------------------------------
-    # Simulation results
-    # ----------------------------------------------------------------
-    # ``result`` read at the top of the render is still current: every mutation
-    # path (map click, quick-find, undo, restore, history load, route form)
-    # calls st.rerun() before reaching here, so no late re-fetch is needed.
+    # ``result`` read above is still current: every mutation path (map click,
+    # quick-find, undo, restore, history load, route form) calls st.rerun() before
+    # control returns here, so there is no stale-read window.
     if result:
-        _render_metric_cards(result["scenario_row"])
-
-        with st.expander("Raw scenario data"):
-            result_table = _scenario_table(result["scenario_row"]).copy()
-            for col in ("impact_score", "network_health", "lcc_loss", "reachability_loss", "ripple_severity"):
-                result_table[col] = result_table[col].map(format_score)
-            show_table(result_table)
-
-        _render_exposure_outputs(result["exposure_df"])
+        _render_results(result)
         st.divider()
 
-    # ----------------------------------------------------------------
-    # Route removal form
-    # ----------------------------------------------------------------
-    st.subheader("Route removal")
-    st.caption("Remove a specific directed route and run the scenario engine.")
-
-    # Codes, not DOT ids: the airport branch already labels by code, and a dropdown of
-    # numeric pairs is unusable for choosing a route.
-    code_by_id = dict(
-        zip(
-            airports_geo["airport_id"].astype(int),
-            airports_geo["iata_code"].astype(str),
-            strict=True,
-        )
-    )
-    route_labels = {
-        f"{code_by_id.get(o, o)} \u2192 {code_by_id.get(d, d)}": (o, d) for o, d in route_pairs
-    }
-    with st.form("route-removal-form"):
-        selected_route_label = st.selectbox(
-            "Route to remove",
-            options=list(route_labels.keys()),
-            index=0,
-        )
-        route_submitted = st.form_submit_button("Run route removal scenario")
-
-    if route_submitted:
-        origin_id, destination_id = route_labels[selected_route_label]
-        try:
-            scenario_row, exp_df = run_ui_scenario(
-                scenario_type="route_removal",
-                payload={"origin_id": int(origin_id), "destination_id": int(destination_id)},
-                config=config,
-            )
-        except Exception as exc:  # pragma: no cover
-            st.error(f"Scenario run failed: {exc}")
-            return
-        label = f"Route: {code_by_id.get(origin_id, origin_id)} \u2192 {code_by_id.get(destination_id, destination_id)}"
-        route_entry: dict[str, Any] = {
-            "airport_id": None,
-            "label": label,
-            "scenario_type": "route",
-            "scenario_row": scenario_row,
-            "exposure_df": exp_df,
-        }
-        _push_history(route_entry)
-        st.session_state[_SS_AIRPORT] = None
-        st.session_state[_SS_TYPE] = "route"
-        st.session_state[_SS_RESULT] = {"scenario_row": scenario_row, "exposure_df": exp_df}
-        st.rerun()
+    _render_route_form(airports_geo, route_pairs, config)
 
     if not result:
-        st.info("Click an airport on the map, use quick-find, or submit a route removal to run a simulation.")
+        st.info(
+            "Click an airport on the map, use quick-find, or submit a route removal "
+            "to run a simulation."
+        )
