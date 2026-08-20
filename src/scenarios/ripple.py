@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 
 import networkx as nx
 
@@ -135,3 +135,32 @@ def _propagate_two_hops(
         hop_level = 1 if e1 > 0.0 else 2
         results[int(node)] = {"exposure_score": total, "hop_level": hop_level}
     return results
+
+
+def airport_set_removal_exposure(
+    graph: nx.DiGraph,
+    removed_airport_ids: Sequence[int],
+    *,
+    lambda_discount: float = LAMBDA_DISCOUNT,
+    precomputed_shares: Mapping[int, Mapping[int, float]] | None = None,
+) -> dict[int, dict[str, float | int]]:
+    """Two-hop exposure after removing several airports simultaneously.
+
+    Each removed airport seeds the same ``AIRPORT_REMOVAL_SHOCK`` as it would alone,
+    and the propagation runs once over the combined seed set. Exposure therefore
+    accumulates where the removed airports share neighbours, which is the whole point
+    of modelling a correlated outage rather than summing independent ones.
+    """
+    missing = [int(a) for a in removed_airport_ids if not graph.has_node(a)]
+    if missing:
+        raise ValueError(f"removed airport(s) {missing} do not exist in graph")
+
+    if precomputed_shares is None:
+        shares: Mapping[int, Mapping[int, float]] = normalize_neighbor_shares(
+            build_dependency_weights(graph)
+        )
+    else:
+        shares = precomputed_shares
+
+    seeds = {int(airport): AIRPORT_REMOVAL_SHOCK for airport in removed_airport_ids}
+    return _propagate_two_hops(shares, seeds, lambda_discount=lambda_discount)

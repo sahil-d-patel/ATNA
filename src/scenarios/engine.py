@@ -11,9 +11,13 @@ from typing import Any
 import networkx as nx
 
 from scenarios.connectivity import ConnectivityCounts
-from scenarios.graph_edits import remove_airport, remove_route
+from scenarios.graph_edits import remove_airport, remove_airports, remove_route
 from scenarios.models import ScenarioType
-from scenarios.ripple import airport_removal_exposure, route_removal_exposure
+from scenarios.ripple import (
+    airport_removal_exposure,
+    airport_set_removal_exposure,
+    route_removal_exposure,
+)
 from scenarios.scoring import aggregate_scenario_scores
 
 
@@ -66,6 +70,17 @@ def run_scenario(
         )
         edited_airports = [removed_airport]
         edited_routes: list[dict[str, int]] = []
+    elif scenario_enum is ScenarioType.AIRPORT_SET_REMOVAL:
+        post_graph, edit = remove_airports(
+            baseline_graph, payload, snapshot_id=snapshot_id, copy=False
+        )
+        exposure_by_airport = airport_set_removal_exposure(
+            baseline_graph,
+            removed_airport_ids=edit.removed_airport_ids,
+            precomputed_shares=precomputed_shares,
+        )
+        edited_airports = list(edit.removed_airport_ids)
+        edited_routes = []
     else:
         post_graph, edit = remove_route(
             baseline_graph, payload, snapshot_id=snapshot_id, copy=False

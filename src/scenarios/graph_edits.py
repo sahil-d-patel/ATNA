@@ -15,6 +15,7 @@ import networkx as nx
 
 from scenarios.models import (
     AirportRemovalPayload,
+    AirportSetRemovalPayload,
     RouteRemovalPayload,
     ScenarioEditResult,
     ScenarioType,
@@ -109,5 +110,47 @@ def remove_route(
         removed_airport_id=None,
         removed_origin_id=route.origin_id,
         removed_destination_id=route.destination_id,
+    )
+    return edited, metadata
+
+
+def remove_airports(
+    baseline_graph: nx.DiGraph,
+    payload: Mapping[str, Any],
+    *,
+    snapshot_id: str | None = None,
+    copy: bool = True,
+) -> tuple[nx.DiGraph, ScenarioEditResult]:
+    """Return a graph with several airports removed at once.
+
+    Args:
+        copy: ``True`` (default) returns an independent, mutable copy. ``False``
+            returns a read-only view with all named airports hidden.
+    """
+    if not isinstance(baseline_graph, nx.DiGraph):
+        raise TypeError("baseline_graph must be a networkx.DiGraph")
+    if not isinstance(payload, Mapping):
+        raise TypeError("payload must be a mapping with 'airport_ids'")
+    if "airport_ids" not in payload:
+        raise KeyError("airport-set removal payload missing required key: 'airport_ids'")
+
+    airports = AirportSetRemovalPayload(airport_ids=tuple(payload["airport_ids"]))
+    missing = [a for a in airports.airport_ids if not baseline_graph.has_node(a)]
+    if missing:
+        raise ValueError(f"airport_id(s) {missing} do not exist in baseline graph")
+
+    if copy:
+        edited = baseline_graph.copy()
+        edited.remove_nodes_from(airports.airport_ids)
+    else:
+        edited = nx.restricted_view(baseline_graph, list(airports.airport_ids), [])
+
+    metadata = ScenarioEditResult(
+        scenario_type=ScenarioType.AIRPORT_SET_REMOVAL,
+        snapshot_id=snapshot_id,
+        removed_airport_id=None,
+        removed_origin_id=None,
+        removed_destination_id=None,
+        removed_airport_ids=airports.airport_ids,
     )
     return edited, metadata
