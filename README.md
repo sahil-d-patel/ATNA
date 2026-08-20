@@ -24,7 +24,7 @@ This repository contains the complete analysis stack:
 - Graph metrics engine with PageRank, betweenness, and Leiden community detection
 - Scenario engine with 2-hop ripple propagation and per-airport vulnerability scoring
 - Seven-page Streamlit application with Plotly maps and a revertible scenario editor
-- 80 tests covering column contracts, metric math, artifact reproducibility, loader guards, and headless page rendering
+- 92 tests covering column contracts, metric math, artifact reproducibility, loader guards, and headless page rendering
 - Continuous integration running lint, type checks, and the full pipeline on Python 3.10 through 3.13
 
 **Synthetic Demo Dataset (recently added):** The BTS extracts are large, rate limited, and not redistributable, so a fresh clone previously had no data and the application was dead on arrival. A generator now writes BTS-shaped raw CSVs that the unmodified pipeline consumes exactly like production input, which also lets the data-dependent half of the test suite run on any machine.
@@ -248,13 +248,14 @@ ATNA/
 │       └── ui/                 #   shared components and formatters
 ├── scripts/
 │   ├── demo/generate_demo_data.py  # Synthetic BTS-shaped dataset
+│   ├── docs/capture_ui.py          # Playwright UI capture to annotated PDF
 │   ├── download/                   # Playwright TranStats downloader + verifier
 │   └── metrics/                    # Static map QA checks
 ├── setupScripts/               # One-command setup / start / pipeline (sh + bat)
 │   ├── setup.sh / setup.bat        # Environment, dependencies, data bootstrap
 │   ├── start.sh / start.bat        # Launch the Streamlit application
 │   └── pipeline.sh / pipeline.bat  # Rebuild all processed artifacts
-├── tests/                      # 80 tests
+├── tests/                      # 92 tests
 ├── data/                       # raw (gitignored), interim, processed, reference
 ├── organization/               # MVP technical specification
 ├── .github/workflows/ci.yml    # Lint + full pipeline + tests on 3.10 to 3.13
@@ -451,7 +452,7 @@ PYTHONPATH=src .venv/bin/python -m pytest tests -q -k "not streamlit"
 
 ### Test Coverage
 
-**80 tests, all passing, no skips**, in roughly 3 seconds end to end.
+**92 tests, all passing, no skips**, in roughly 3 seconds end to end.
 
 - **ETL**: column and join contracts for all three canonical tables, roundtrip writes
 - **Metrics**: centrality math, hub and bridge composites, Leiden partition coverage, route criticality
@@ -518,6 +519,8 @@ Edit `snapshot_id` in [`config/atna.yaml`](config/atna.yaml) to a `YYYY-MM` valu
 | [Field selection notes](data/reference/field_selection_notes.md) | Exact TranStats fields per download |
 | [Download spec](docs/data_download_spec.md) | Raw file naming and layout |
 | [Manual download](scripts/download/MANUAL_BTS_DOWNLOAD.md) | Fallback when TranStats blocks automation |
+| [Interface walkthrough](docs/ui/ATNA-interface.pdf) | Annotated PDF of every page, generated from the running app |
+| [Contributing](CONTRIBUTING.md) | Setup, the artifact contract, and conventions |
 | [Validation notes](data/reference/validation_notes_mvp.md) | Snapshot metadata, exclusions, BTS quirks |
 
 ---

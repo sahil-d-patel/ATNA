@@ -87,6 +87,9 @@ desktop.ini
 # Local planning and working notes, not part of the published project
 .planning/
 
+# Intermediate screenshots; the generated PDF is committed, the PNGs are not
+docs/ui/screens/
+
 # --- Misc ---
 *.swp
 *~
