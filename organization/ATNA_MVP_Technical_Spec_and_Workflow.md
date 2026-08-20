@@ -535,14 +535,44 @@ Store:
 ## 9.1 Largest connected component loss
 
 ```text
-LCC_Loss = 100 * (1 - LCC_post / LCC_pre)
+LCC_Loss = 100 * (1 - LCC_Traffic_post / LCC_Traffic_pre)
+
+LCC_Traffic(G) = max over weakly connected components C of  Σ_{i in C} s_total(i)
 ```
+
+The largest component is measured by the traffic it carries rather than by how many
+airports it contains, for the same reason as §9.2: a node count treats the loss of
+ATL and the loss of ANC as identical events. On a 50-airport snapshot the node-count
+form produced **2 distinct values across all 50 airports**; the traffic form produces
+**50**, ranked ORD, ATL, CLT, DFW.
 
 ## 9.2 Reachability loss
 
 ```text
-Reachability_Loss = 100 * (1 - ReachablePairs_post / ReachablePairs_pre)
+Reachability_Loss = 100 * (1 - WeightedReach_post / WeightedReach_pre)
+
+WeightedReach(G) = Σ_i Σ_{j reachable from i, j ≠ i} s_total(i) * s_total(j)
 ```
+
+Each reachable ordered pair contributes in proportion to the traffic at its two
+endpoints, using the strength `s_total` defined in §7.3.
+
+### Rationale for weighting
+
+The original definition counted every reachable ordered pair equally, which made
+ATL-to-LAX worth exactly as much as ANC-to-JAX. Two consequences were measured on a
+50-airport snapshot:
+
+- The term took only **2 distinct values across all 50 airports**, so it carried
+  almost no information and could not separate a hub from a spoke.
+- Because it went flat, `Impact_Score` collapsed onto its ripple term, which is
+  itself biased toward low-degree airports (see §8). Peripheral airports therefore
+  outranked the largest hubs in `Vulnerability`.
+
+Weighting by endpoint traffic restores the discrimination the score is supposed to
+provide: the same snapshot yields **50 distinct values**, ranked ORD, ATL, CLT, DFW.
+The formula is unchanged in shape; only the unit of account moves from "pairs" to
+"traffic-weighted pairs".
 
 ## 9.3 Ripple severity
 

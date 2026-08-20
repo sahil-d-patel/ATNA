@@ -101,19 +101,22 @@ def render_methodology_page() -> None:
         """
     )
 
-    st.subheader("Connectivity terms go flat on well-connected networks")
+    st.subheader("Connectivity terms are measured in traffic, not airports")
     st.markdown(
         """
-        `LCC_Loss` and `Reachability_Loss` only separate airports when removing one
-        actually disconnects part of the network. If every airport has at least two
-        independent paths into the core, no single removal disconnects anything, and
-        both terms collapse to the same constant for every airport: losing 1 node of
-        N, and the ordered pairs that node accounted for.
+        Both connectivity terms once counted airports and reachable pairs equally,
+        which treated losing ATL and losing ANC as the same event. On a 50-airport
+        snapshot each term took only **two distinct values across all fifty
+        airports**, so `ImpactScore` collapsed onto its ripple term and peripheral
+        airports outranked the largest hubs.
 
-        When that happens, `ImpactScore` reduces to its ripple term alone, since the
-        other two contribute an identical constant to every airport. This is
-        observable on any densely connected snapshot, and it is worth checking the
-        spread of those two columns before drawing conclusions from impact.
+        Both are now weighted by the traffic at the airports involved (spec §9.1,
+        §9.2), which restores the discrimination: the same snapshot yields fifty
+        distinct values, and ORD and ATL rank first and second.
+
+        This remains a *structural* measure. It says what a removal does to the
+        network's ability to carry traffic, not how many passengers were actually
+        disrupted on any given day.
         """
     )
 

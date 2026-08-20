@@ -324,6 +324,23 @@ def write_markdown_manifest(manifest: RunManifest) -> None:
     MANIFEST_PATH.write_text(json.dumps(manifest.to_json(), indent=2), encoding="utf-8")
 
 
+def parse_months(spec: str) -> list[int]:
+    """Expand a month specification such as ``"1,2,6-8"`` into sorted month numbers."""
+    months: set[int] = set()
+    for chunk in spec.split(","):
+        chunk = chunk.strip()
+        if not chunk:
+            continue
+        if "-" in chunk:
+            start, _, end = chunk.partition("-")
+            months.update(range(int(start), int(end) + 1))
+        else:
+            months.add(int(chunk))
+    if not months or not all(1 <= m <= 12 for m in months):
+        raise ValueError(f"invalid --months specification: {spec!r}")
+    return sorted(months)
+
+
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Download BTS raw datasets for ATNA MVP.")
     p.add_argument("--year", default="2025", help="Calendar year (default 2025)")
@@ -335,6 +352,15 @@ def parse_args() -> argparse.Namespace:
     )
     p.add_argument("--headed", action="store_true", help="Show browser window (default: headless)")
     p.add_argument("--pause", type=float, default=3.0, help="Seconds between downloads")
+    p.add_argument(
+        "--months",
+        default="1-12",
+        help=(
+            "Months to fetch: a comma-separated list and/or ranges, e.g. '12' or "
+            "'1,2,6-8'. Defaults to the whole year. A full year of on-time data is "
+            "several gigabytes, so narrowing this is usually what you want."
+        ),
+    )
     p.add_argument(
         "--continue-on-error",
         action="store_true",
@@ -353,7 +379,7 @@ def main() -> int:
     started = datetime.now(timezone.utc).isoformat()
     manifest = RunManifest(started_at=started)
 
-    months = list(range(1, 13))
+    months = parse_months(args.months)
     failed: list[str] = []
 
     with sync_playwright() as pw:

@@ -14,7 +14,7 @@ from metrics.graph_builder import build_analysis_graph
 from scenarios.engine import run_scenario
 from scenarios.models import ScenarioType
 from scenarios.ripple import build_dependency_weights, normalize_neighbor_shares
-from scenarios.scoring import reachable_pairs_count
+from scenarios.scoring import node_strengths, weighted_reach
 
 
 @st.cache_resource(show_spinner=False)
@@ -35,7 +35,12 @@ def _build_baseline_graph_cached(
 @st.cache_resource(show_spinner=False)
 def _baseline_invariants_cached(
     snapshot_id: str, edges_csv: str, _graph: nx.DiGraph
-) -> tuple[dict[int, dict[int, float]], dict[int, dict[int, float]], int]:
+) -> tuple[
+    dict[int, dict[int, float]],
+    dict[int, dict[int, float]],
+    dict[int, float],
+    float,
+]:
     """Cache the baseline-only inputs every scenario would otherwise re-derive.
 
     Normalized neighbor shares and the baseline reachable-pair count depend solely on
@@ -44,10 +49,12 @@ def _baseline_invariants_cached(
     starts. They are cached alongside the graph and reused for every UI scenario.
     """
     dependency = build_dependency_weights(_graph)
+    strengths = node_strengths(_graph)
     return (
         dependency,
         normalize_neighbor_shares(dependency),
-        reachable_pairs_count(_graph),
+        strengths,
+        weighted_reach(_graph, strengths),
     )
 
 
@@ -97,7 +104,7 @@ def run_ui_scenario(
     """Validate UI payload and run canonical scenario engine."""
     cfg = config if config is not None else load_app_config()
     graph = load_baseline_graph(cfg)
-    dependency, shares, pre_reachable_pairs = _baseline_invariants_cached(
+    dependency, shares, strengths, pre_reachable_pairs = _baseline_invariants_cached(
         cfg.snapshot_id, str(cfg.edges_csv), graph
     )
     normalized_type = ScenarioType(str(scenario_type))
@@ -109,6 +116,7 @@ def run_ui_scenario(
         payload=normalized_payload,
         precomputed_shares=shares,
         precomputed_dependency=dependency,
+        strengths=strengths,
         pre_reachable_pairs=pre_reachable_pairs,
     )
     exposure_df = pd.DataFrame(exposure_rows)

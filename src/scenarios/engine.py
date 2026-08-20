@@ -26,7 +26,8 @@ def run_scenario(
     created_at: str | None = None,
     precomputed_shares: Mapping[int, Mapping[int, float]] | None = None,
     precomputed_dependency: Mapping[int, Mapping[int, float]] | None = None,
-    pre_reachable_pairs: int | None = None,
+    strengths: Mapping[int, float] | None = None,
+    pre_reachable_pairs: float | None = None,
     post_connectivity: ConnectivityCounts | None = None,
 ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     """Run one scenario end-to-end and return normalized scenario and exposure rows.
@@ -94,6 +95,7 @@ def run_scenario(
         post_graph=post_graph,
         exposure_by_airport=exposure_by_airport,
         total_airports=baseline_graph.number_of_nodes(),
+        strengths=strengths,
         pre_reachable_pairs=pre_reachable_pairs,
         post_lcc_size=None if post_connectivity is None else post_connectivity.lcc_size,
         post_reachable_pairs=(

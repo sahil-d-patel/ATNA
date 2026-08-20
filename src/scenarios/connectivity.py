@@ -24,13 +24,18 @@ import numpy as np
 from scipy.sparse import csr_array
 from scipy.sparse.csgraph import connected_components
 
+from scenarios.scoring import node_strengths
+
 
 @dataclass(frozen=True)
 class ConnectivityCounts:
-    """Largest weakly connected component size and reachable ordered pair count."""
+    """Traffic in the largest weakly connected component, and the weighted reach total.
 
-    lcc_size: int
-    reachable_pairs: int
+    Both are traffic totals rather than counts (spec §9.1, §9.2).
+    """
+
+    lcc_size: float
+    reachable_pairs: float
 
 
 class ConnectivityIndex:
@@ -59,6 +64,13 @@ class ConnectivityIndex:
         self._sources = np.fromiter(sources, dtype=np.int32, count=len(sources))
         self._targets = np.fromiter(targets, dtype=np.int32, count=len(targets))
 
+        # Strength is a property of the baseline: removing one airport does not change
+        # the traffic at the airports that remain, so this is computed once.
+        strengths = node_strengths(graph)
+        self._strengths = np.array(
+            [float(strengths.get(node, 0.0)) for node in self._nodes], dtype=float
+        )
+
     @property
     def nodes(self) -> list[int]:
         """Airport ids in the index's internal order."""
@@ -78,16 +90,17 @@ class ConnectivityIndex:
         targets = self._targets[keep]
         sources = sources - (sources > dropped)
         targets = targets - (targets > dropped)
+        strengths = np.delete(self._strengths, dropped)
 
-        return _counts_from_edges(sources, targets, self._order - 1)
+        return _counts_from_edges(sources, targets, self._order - 1, strengths)
 
 
 def _counts_from_edges(
-    sources: np.ndarray, targets: np.ndarray, order: int
+    sources: np.ndarray, targets: np.ndarray, order: int, strengths: np.ndarray
 ) -> ConnectivityCounts:
-    """Compute both connectivity counts for a directed graph given as edge arrays."""
+    """Compute both connectivity measures for a directed graph given as edge arrays."""
     if order <= 0:
-        return ConnectivityCounts(lcc_size=0, reachable_pairs=0)
+        return ConnectivityCounts(lcc_size=0.0, reachable_pairs=0.0)
 
     adjacency = csr_array(
         (np.ones(sources.shape[0], dtype=bool), (sources, targets)),
@@ -95,34 +108,35 @@ def _counts_from_edges(
     )
 
     _, weak_labels = connected_components(adjacency, directed=True, connection="weak")
-    lcc_size = int(np.bincount(weak_labels).max())
+    lcc_size = float(np.bincount(weak_labels, weights=strengths).max())
 
     component_count, strong_labels = connected_components(
         adjacency, directed=True, connection="strong"
     )
     if component_count == 1:
-        # One strongly connected component: every ordered pair is reachable.
-        return ConnectivityCounts(lcc_size=lcc_size, reachable_pairs=order * (order - 1))
+        # One strongly connected component: every ordered pair is reachable, so the
+        # weighted total is the square of the strength sum less the self pairs.
+        total = float(strengths.sum() ** 2 - (strengths**2).sum())
+        return ConnectivityCounts(lcc_size=lcc_size, reachable_pairs=total)
 
-    component_sizes = np.bincount(strong_labels, minlength=component_count)
-    reachable_pairs = _condensation_reachable_pairs(
-        strong_labels, component_sizes, sources, targets, component_count
+    weighted = _condensation_weighted_reach(
+        strong_labels, strengths, sources, targets, component_count
     )
-    return ConnectivityCounts(lcc_size=lcc_size, reachable_pairs=int(reachable_pairs))
+    return ConnectivityCounts(lcc_size=lcc_size, reachable_pairs=float(weighted))
 
 
-def _condensation_reachable_pairs(
+def _condensation_weighted_reach(
     strong_labels: np.ndarray,
-    component_sizes: np.ndarray,
+    strengths: np.ndarray,
     sources: np.ndarray,
     targets: np.ndarray,
     component_count: int,
-) -> int:
-    """Sum reachable ordered pairs over the SCC condensation.
+) -> float:
+    """Sum traffic-weighted reachable pairs over the SCC condensation.
 
-    Mirrors :func:`scenarios.scoring.reachable_pairs_count`: a reverse-topological
-    bitset union over the condensation DAG, then ``|C| * (reachable nodes - 1)``
-    summed across components.
+    Mirrors :func:`scenarios.scoring.weighted_reach`: a reverse-topological bitset
+    union over the condensation DAG, then ``S_C * S_reach(C)`` less the excluded
+    self pairs, summed across components.
     """
     source_components = strong_labels[sources]
     target_components = strong_labels[targets]
@@ -138,7 +152,12 @@ def _condensation_reachable_pairs(
         )
     )
 
-    sizes = [int(size) for size in component_sizes]
+    component_strength = np.bincount(
+        strong_labels, weights=strengths, minlength=component_count
+    )
+    component_square = np.bincount(
+        strong_labels, weights=strengths**2, minlength=component_count
+    )
     reachable_mask = [0] * component_count
     for component in reversed(list(nx.topological_sort(condensation))):
         mask = 1 << component
@@ -146,13 +165,13 @@ def _condensation_reachable_pairs(
             mask |= reachable_mask[successor]
         reachable_mask[component] = mask
 
-    total = 0
+    total = 0.0
     for component, mask in enumerate(reachable_mask):
-        reached = 0
+        reached = 0.0
         remaining = mask
         while remaining:
             lowest_bit = remaining & -remaining
-            reached += sizes[lowest_bit.bit_length() - 1]
+            reached += float(component_strength[lowest_bit.bit_length() - 1])
             remaining ^= lowest_bit
-        total += sizes[component] * (reached - 1)
+        total += float(component_strength[component]) * reached - float(component_square[component])
     return total

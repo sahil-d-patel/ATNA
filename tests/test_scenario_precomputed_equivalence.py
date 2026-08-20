@@ -18,7 +18,7 @@ from scenarios.connectivity import ConnectivityIndex
 from scenarios.engine import run_scenario
 from scenarios.graph_edits import remove_airport, remove_route
 from scenarios.ripple import build_dependency_weights, normalize_neighbor_shares
-from scenarios.scoring import reachable_pairs_count
+from scenarios.scoring import node_strengths, weighted_reach
 from scenarios.vulnerability import build_vulnerability_scores
 
 SNAPSHOT_ID = "2025-12"
@@ -28,7 +28,13 @@ FIXED_CREATED_AT = "1970-01-01T00:00:00Z"
 
 def _baseline_inputs(graph: nx.DiGraph):
     dependency = build_dependency_weights(graph)
-    return dependency, normalize_neighbor_shares(dependency), reachable_pairs_count(graph)
+    strengths = node_strengths(graph)
+    return (
+        dependency,
+        normalize_neighbor_shares(dependency),
+        strengths,
+        weighted_reach(graph, strengths),
+    )
 
 
 @pytest.mark.parametrize(
@@ -41,7 +47,7 @@ def _baseline_inputs(graph: nx.DiGraph):
     ],
 )
 def test_precomputed_inputs_match_cold_path(fixture_graph, scenario_type, payload) -> None:
-    dependency, shares, pre_pairs = _baseline_inputs(fixture_graph)
+    dependency, shares, strengths, pre_pairs = _baseline_inputs(fixture_graph)
 
     cold_row, cold_exposure = run_scenario(
         fixture_graph,
@@ -58,6 +64,7 @@ def test_precomputed_inputs_match_cold_path(fixture_graph, scenario_type, payloa
         created_at=FIXED_CREATED_AT,
         precomputed_shares=shares,
         precomputed_dependency=dependency,
+        strengths=strengths,
         pre_reachable_pairs=pre_pairs,
     )
 
@@ -120,7 +127,7 @@ def test_post_connectivity_matches_measuring_the_edited_graph(fixture_graph, air
     The batch scorer supplies these counts instead of measuring each edited graph. That
     is only sound if the two agree exactly, since both feed the same locked formulas.
     """
-    _, shares, pre_pairs = _baseline_inputs(fixture_graph)
+    _, shares, strengths, pre_pairs = _baseline_inputs(fixture_graph)
     counts = ConnectivityIndex(fixture_graph).without_airport(airport_id)
 
     measured_row, measured_exposure = run_scenario(
@@ -130,6 +137,7 @@ def test_post_connectivity_matches_measuring_the_edited_graph(fixture_graph, air
         payload={"airport_id": airport_id},
         created_at=FIXED_CREATED_AT,
         precomputed_shares=shares,
+        strengths=strengths,
         pre_reachable_pairs=pre_pairs,
     )
     indexed_row, indexed_exposure = run_scenario(
@@ -139,6 +147,7 @@ def test_post_connectivity_matches_measuring_the_edited_graph(fixture_graph, air
         payload={"airport_id": airport_id},
         created_at=FIXED_CREATED_AT,
         precomputed_shares=shares,
+        strengths=strengths,
         pre_reachable_pairs=pre_pairs,
         post_connectivity=counts,
     )
