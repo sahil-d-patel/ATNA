@@ -21,7 +21,9 @@ from app.streamlit_compat import st
 # and keep the teal accent the only cool color on the page.
 INK = "#1C1917"
 INK_MUTED = "#57534E"
-INK_FAINT = "#A8A29E"
+# Darkened from #A8A29E, which measured 2.5:1 on the canvas and failed WCAG AA.
+# This clears 4.5:1 on both the canvas and raised surfaces.
+INK_FAINT = "#78716C"
 SURFACE = "#FFFFFF"
 CANVAS = "#FAFAF9"
 HAIRLINE = "#E7E5E4"

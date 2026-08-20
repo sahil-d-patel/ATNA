@@ -81,3 +81,47 @@ PYTHONPATH=src python scripts/validation/validate_disruption.py \
     --config config/atna-2022-11.yaml \
     --event-on-time data/raw/on_time/2022/on_time_2022_12.csv
 ```
+
+---
+
+# Stability across snapshots
+
+A score that swings between consecutive months is measuring one month's sampling, not
+network structure. Comparing the two real snapshots, over the 345 airports present in
+both:
+
+| Score | Spearman ρ, Nov vs Dec 2022 |
+|---|---:|
+| `hub_score` | **+0.972** |
+| `bridge_score` | +0.912 |
+| `vulnerability_score` | +0.963 |
+
+The rankings are stable. That holds even though December 2022 contained the largest
+domestic disruption in years, which is the right outcome: the metrics describe the
+route network, and the network did not change shape because a week of flights was
+cancelled.
+
+## The exceptions have a reason
+
+The airports that moved most are the useful part of this check, because an aggregate
+correlation hides them.
+
+| Airport | Nov | Dec | Change |
+|---|---:|---:|---:|
+| HDN — Hayden / Steamboat Springs | 19.3 | 64.5 | **+45.2** |
+| EGE — Eagle / Vail | 34.0 | 66.9 | +32.9 |
+| GUC — Gunnison / Crested Butte | 7.8 | 38.0 | +30.2 |
+| MTJ — Montrose / Telluride | 34.4 | 62.3 | +27.9 |
+| PAH — Paducah | 35.1 | 4.7 | −30.4 |
+| HIB — Hibbing | 36.3 | 8.2 | −28.1 |
+
+The four largest gains are all Colorado ski airports, which pick up seasonal service in
+December. That is the behaviour a structural metric should show: stable where the
+network is stable, moving where service genuinely changed.
+
+## Reproducing
+
+```bash
+PYTHONPATH=src python scripts/validation/snapshot_stability.py \
+    --baseline 2022-11 --comparison 2022-12
+```

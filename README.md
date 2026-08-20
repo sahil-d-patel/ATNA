@@ -62,6 +62,21 @@ This is one event, the correlation is moderate, and geography is a confounder th
 cannot separate from network position. [The full write-up](docs/validation_december_2022.md)
 states what the result does and does not establish.
 
+### Are the scores stable?
+
+Across two real consecutive months, over the 345 airports present in both:
+
+| Score | Spearman ρ, Nov vs Dec 2022 |
+|---|---:|
+| `hub_score` | **+0.972** |
+| `bridge_score` | +0.912 |
+| `vulnerability_score` | +0.963 |
+
+Stable, even though December 2022 contained the largest domestic disruption in years.
+And the exceptions have a reason: the four biggest movers are HDN, EGE, GUC, and MTJ —
+all Colorado ski airports picking up seasonal service. Stable where the network is
+stable, moving where service genuinely changed.
+
 ---
 
 ## Performance
