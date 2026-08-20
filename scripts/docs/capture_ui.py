@@ -198,7 +198,11 @@ def main(argv: list[str] | None = None) -> int:
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
     build_pdf(captured, args.out)
-    print(f"\nWrote {args.out.relative_to(REPO_ROOT)} ({len(captured)} pages)")
+    try:
+        shown = args.out.relative_to(REPO_ROOT)
+    except ValueError:  # --out may point outside the repository
+        shown = args.out
+    print(f"\nWrote {shown} ({len(captured)} pages)")
 
     if not args.keep:
         for _, path in captured:
