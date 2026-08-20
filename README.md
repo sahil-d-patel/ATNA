@@ -33,9 +33,40 @@ This repository contains the complete analysis stack:
 
 ---
 
+## Validation
+
+Every score here is a modelling output, so one section exists to ask whether those
+outputs correspond to anything that happened.
+
+Between 21 and 29 December 2022 a winter storm and a carrier collapse took a large
+share of U.S. domestic capacity offline: system-wide cancellations went from 0.6% to a
+peak of **27.6%**, then back to 0.7%. That is a natural experiment.
+
+The network is built from **November 2022**, so nothing about the event informs the
+graph. The six airports where the disruption actually originated are identified from
+the data itself, removed simultaneously in the ripple model, and the predicted exposure
+of every *other* airport is compared against the degradation it actually suffered.
+
+| Measure | Value | p |
+|---|---:|---:|
+| Spearman ρ, predicted exposure vs observed damage | **+0.387** | 1.6 × 10⁻⁶ |
+| Partial ρ, controlling for airport size | **+0.386** | 1.8 × 10⁻⁶ |
+| Airport size alone vs observed damage | +0.246 | — |
+
+Large airports both attract more predicted exposure and cancel more flights in any
+disruption, so size is the obvious objection. Partialling it out of both variables
+leaves the relationship essentially untouched: **exposure carries information beyond
+airport size**.
+
+This is one event, the correlation is moderate, and geography is a confounder the test
+cannot separate from network position. [The full write-up](docs/validation_december_2022.md)
+states what the result does and does not establish.
+
+---
+
 ## Performance
 
-The pipeline was optimized against a 350 airport, 15,000 route graph, which is full U.S. domestic BTS scale. The expensive operation is the vulnerability batch, which removes every airport in turn and rescores the whole network each time. That is N scenarios over an N node, E edge graph, so a naive implementation degrades sharply exactly when the dataset gets interesting.
+The pipeline was optimized against a synthetic 350-airport, 15,000-route graph. The real U.S. domestic network turns out to be sparser than that: a November 2022 snapshot is 348 airports and 5,657 routes, so the figures below are a conservative upper bound on real cost. The expensive operation is the vulnerability batch, which removes every airport in turn and rescores the whole network each time. That is N scenarios over an N node, E edge graph, so a naive implementation degrades sharply exactly when the dataset gets interesting.
 
 | Operation | Before | After | Speedup |
 |---|---:|---:|---:|
