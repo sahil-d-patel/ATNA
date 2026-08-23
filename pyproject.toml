@@ -26,6 +26,7 @@ ignore = [
     "E501",    # line length is enforced by the formatter, not the linter
     "B008",    # function calls in argument defaults (not a pattern used here)
     "SIM108",  # ternaries are not always clearer than if/else
+    "RUF001",  # Greek letters in statistical prose are deliberate (rho, lambda)
     "RUF002",  # en dashes in prose docstrings are deliberate (spec §7.6–§7.7, 0–100)
 ]
 

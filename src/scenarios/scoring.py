@@ -204,16 +204,41 @@ def ripple_severity(
     exposure_by_airport: Mapping[int, Mapping[str, float | int]],
     *,
     total_airports: int,
-    threshold: float = 10.0,
+    strengths: Mapping[int, float] | None = None,
 ) -> float:
-    """Compute share of airports with exposure >= threshold, scaled to 0-100."""
+    """Traffic-weighted mean exposure across the network (spec §9.3).
+
+    Counting airports above a fixed threshold discards both the magnitude of each
+    exposure and the size of the airport it landed on. On a real snapshot that count
+    produced nine distinct values across 348 airports and ranked regional airports
+    above every hub in the country.
+
+    Weighting by strength keeps both. ``Exposure`` is bounded by the shock, which is
+    itself bounded by 100, so the result is already on the 0-100 scale.
+
+    ``strengths`` falls back to counting when omitted, which preserves the previous
+    behaviour for callers that have no graph to hand.
+    """
     if total_airports <= 0:
         return 0.0
-    affected = 0
-    for payload in exposure_by_airport.values():
-        if float(payload.get("exposure_score", 0.0)) >= threshold:
-            affected += 1
-    return _finite_percentage(100.0 * (float(affected) / float(total_airports)))
+
+    if strengths is None:
+        affected = sum(
+            1
+            for payload in exposure_by_airport.values()
+            if float(payload.get("exposure_score", 0.0)) >= 10.0
+        )
+        return _finite_percentage(100.0 * (float(affected) / float(total_airports)))
+
+    total_strength = float(sum(strengths.values()))
+    if total_strength <= 0.0:
+        return 0.0
+
+    weighted = sum(
+        float(payload.get("exposure_score", 0.0)) * float(strengths.get(int(airport), 0.0))
+        for airport, payload in exposure_by_airport.items()
+    )
+    return _finite_percentage(weighted / total_strength)
 
 
 def impact_score(
@@ -262,7 +287,9 @@ def aggregate_scenario_scores(
         pre_reachable_pairs=pre_reachable_pairs,
         post_reachable_pairs=post_reachable_pairs,
     )
-    ripple = ripple_severity(exposure_by_airport, total_airports=total_airports)
+    ripple = ripple_severity(
+        exposure_by_airport, total_airports=total_airports, strengths=strengths
+    )
     impact = impact_score(
         lcc_loss_value=lcc,
         reachability_loss_value=reach,

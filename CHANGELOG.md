@@ -2,6 +2,52 @@
 
 Notable changes to ATNA. Dates are the date the work landed.
 
+## 2026-08-23
+
+### Changed — the ripple model, selected by measurement
+
+Two defects, both of which made `ripple_severity` useless as the 30% term of
+`impact_score`:
+
+- **Shock is now proportional to the removed airport's strength** (spec §8.6). A fixed
+  shock of 100 was conserved regardless of airport size and then divided among that
+  airport's neighbours, so the larger the airport the thinner its own shock spread.
+  On the real 348-airport November 2022 network, DFW has 360 neighbours and reached
+  each with 0.28 — far below the threshold — so **every major hub scored exactly zero**.
+- **Severity is the traffic-weighted mean exposure** (spec §9.3), replacing a count of
+  airports above a fixed threshold of 10, which discarded both the magnitude of each
+  exposure and the size of the airport it landed on.
+
+Neither change was argued into place. Four combinations were measured against the
+December 2022 disruption:
+
+| Formulation | Distinct values | Hubs in top 10 | ρ | Partial ρ |
+|---|---:|---:|---:|---:|
+| Fixed shock, count ≥ 10 (previous) | 9 | 0 | +0.387 | +0.386 |
+| Fixed shock, traffic-weighted | 332 | 0 | +0.387 | +0.386 |
+| Strength shock, count ≥ 10 | 1 | 0 | +0.411 | +0.457 |
+| **Strength shock, traffic-weighted** | **332** | **9** | **+0.411** | **+0.457** |
+
+The adopted pair is the only one that both discriminates between airports and agrees
+better with what actually happened. Ripple severity now takes 332 distinct values
+across 348 airports and ranks ATL, DFW, DEN, ORD.
+
+Validation improved from ρ = +0.387 to **+0.411**, and from +0.386 to **+0.457** once
+airport size is controlled for.
+
+### Changed — eigenvector centrality
+
+Computed on the largest strongly connected component and left undefined outside it,
+rather than abandoning the whole column whenever the snapshot as a whole was not
+strongly connected. That cost every airport in the giant component a value it could
+legitimately have carried.
+
+### Fixed — documentation accuracy
+
+The README claimed BTS extracts were "not redistributable" and that TranStats
+"throttles aggressively". Neither held up: the downloader fetched the validation
+dataset directly in about 90 seconds. Both claims corrected.
+
 ## 2026-08-20
 
 ### Changed — scoring

@@ -18,7 +18,7 @@ from scenarios.ripple import (
     airport_set_removal_exposure,
     route_removal_exposure,
 )
-from scenarios.scoring import aggregate_scenario_scores
+from scenarios.scoring import aggregate_scenario_scores, node_strengths
 
 
 def run_scenario(
@@ -52,6 +52,9 @@ def run_scenario(
     if not isinstance(payload, Mapping):
         raise TypeError("payload must be a mapping")
 
+    if strengths is None:
+        strengths = node_strengths(baseline_graph)
+
     # ``post_graph`` is scored and discarded inside this function — it is never mutated
     # and never returned — so a read-only view is sufficient and avoids copying the
     # full baseline adjacency once per scenario.
@@ -67,6 +70,7 @@ def run_scenario(
             baseline_graph,
             removed_airport_id=removed_airport,
             precomputed_shares=precomputed_shares,
+            strengths=strengths,
         )
         edited_airports = [removed_airport]
         edited_routes: list[dict[str, int]] = []
@@ -78,6 +82,7 @@ def run_scenario(
             baseline_graph,
             removed_airport_ids=edit.removed_airport_ids,
             precomputed_shares=precomputed_shares,
+            strengths=strengths,
         )
         edited_airports = list(edit.removed_airport_ids)
         edited_routes = []

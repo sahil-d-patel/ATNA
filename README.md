@@ -24,12 +24,13 @@ This repository contains the complete analysis stack:
 - Graph metrics engine with PageRank, betweenness, and Leiden community detection
 - Scenario engine with 2-hop ripple propagation and per-airport vulnerability scoring
 - Seven-page Streamlit application with Plotly maps and a revertible scenario editor
-- 92 tests covering column contracts, metric math, artifact reproducibility, loader guards, and headless page rendering
+- 104 tests covering column contracts, metric math, artifact reproducibility, loader guards, and headless page rendering
+- Validation against a real disruption, and stability checked across two real months
 - Continuous integration running lint, type checks, and the full pipeline on Python 3.10 through 3.13
 
-**Synthetic Demo Dataset (recently added):** The BTS extracts are large, rate limited, and not redistributable, so a fresh clone previously had no data and the application was dead on arrival. A generator now writes BTS-shaped raw CSVs that the unmodified pipeline consumes exactly like production input, which also lets the data-dependent half of the test suite run on any machine.
+**Synthetic Demo Dataset:** A month of BTS on-time data is roughly 75 MB and several hundred thousand rows, so a fresh clone has no data until someone downloads it. A generator writes BTS-shaped raw CSVs that the unmodified pipeline consumes exactly like production input, which lets the application and the data-dependent half of the test suite run immediately on any machine.
 
-**Raw Data (not included):** `data/raw/` is gitignored and immutable in place. Refreshing data means writing to a new path rather than overwriting existing bytes, so prior inputs stay inspectable and results stay reproducible. The automated downloader is included, but TranStats throttles aggressively and a manual fallback is documented.
+**Raw Data (not committed):** `data/raw/` is gitignored and immutable in place. Refreshing data means writing to a new path rather than overwriting existing bytes, so prior inputs stay inspectable and results stay reproducible. The automated downloader works against TranStats directly — `--months 11,12` fetched the validation dataset in about 90 seconds — and a manual fallback is documented for when the service is unavailable.
 
 ---
 
@@ -49,14 +50,18 @@ of every *other* airport is compared against the degradation it actually suffere
 
 | Measure | Value | p |
 |---|---:|---:|
-| Spearman ρ, predicted exposure vs observed damage | **+0.387** | 1.6 × 10⁻⁶ |
-| Partial ρ, controlling for airport size | **+0.386** | 1.8 × 10⁻⁶ |
+| Spearman ρ, predicted exposure vs observed damage | **+0.411** | 3.1 × 10⁻⁷ |
+| Partial ρ, controlling for airport size | **+0.457** | 8.3 × 10⁻⁹ |
 | Airport size alone vs observed damage | +0.246 | — |
 
 Large airports both attract more predicted exposure and cancel more flights in any
 disruption, so size is the obvious objection. Partialling it out of both variables
 leaves the relationship essentially untouched: **exposure carries information beyond
 airport size**.
+
+This event is also how the model was *corrected*: two ripple formulations were tested
+against it, and the pair adopted is the one that both discriminated between airports
+and agreed better with what happened (ρ +0.387 → +0.411, partial +0.386 → +0.457).
 
 This is one event, the correlation is moderate, and geography is a confounder the test
 cannot separate from network position. [The full write-up](docs/validation_december_2022.md)
@@ -301,7 +306,7 @@ ATNA/
 │   ├── setup.sh / setup.bat        # Environment, dependencies, data bootstrap
 │   ├── start.sh / start.bat        # Launch the Streamlit application
 │   └── pipeline.sh / pipeline.bat  # Rebuild all processed artifacts
-├── tests/                      # 92 tests
+├── tests/                      # 104 tests
 ├── data/                       # raw (gitignored), interim, processed, reference
 ├── organization/               # MVP technical specification
 ├── .github/workflows/ci.yml    # Lint + full pipeline + tests on 3.10 to 3.13
@@ -377,7 +382,7 @@ The application will be available at [http://localhost:8501](http://localhost:85
 
 ### About the Demo Dataset
 
-The BTS extracts are large, rate limited, and not redistributable, so a fresh clone has no data. Rather than leaving the application dead on arrival, `--demo` synthesizes a BTS-shaped dataset that the unmodified pipeline consumes exactly like production input.
+A month of BTS on-time data is roughly 75 MB, so a fresh clone has no data until someone downloads it. Rather than leaving the application dead on arrival, `--demo` synthesizes a BTS-shaped dataset that the unmodified pipeline consumes exactly like production input.
 
 - **Real:** identifiers, IATA codes, cities, and coordinates for the 50 busiest U.S. airports
 - **Synthetic:** every flight, passenger, seat, and delay figure, drawn from a gravity model of hub mass over great-circle distance
@@ -429,7 +434,7 @@ PYTHONPATH=src streamlit run src/app/streamlit_app.py
 ./setupScripts/setup.sh --data
 ```
 
-This downloads on-time performance, T-100 segment, and master coordinate files for the year configured in `config/atna.yaml`, then runs the full pipeline. TranStats throttles aggressively, so [`scripts/download/MANUAL_BTS_DOWNLOAD.md`](scripts/download/MANUAL_BTS_DOWNLOAD.md) documents the manual fallback.
+This downloads on-time performance, T-100 segment, and master coordinate files for the year configured in `config/atna.yaml`, then runs the full pipeline. Narrow it with `--months 11,12`, since a full year of on-time data is several gigabytes. [`scripts/download/MANUAL_BTS_DOWNLOAD.md`](scripts/download/MANUAL_BTS_DOWNLOAD.md) documents a manual fallback for when the service is unavailable.
 
 ---
 
@@ -454,15 +459,29 @@ The data model, formulas, and CSV column contracts are defined in [`organization
 
 ### Known Limitations
 
-These are properties of the model, verified against this implementation rather than assumed. The Methodology page in the application carries the full write-up.
+Stated because they bound how the scores should be read. The Methodology page in the
+application carries the full write-up.
 
-**Ripple severity favours low-degree airports.** Removing an airport releases a fixed shock of 100 distributed across its neighbours in proportion to `Share(i,j)`, which normalises by that airport's own total dependency. A hub with 60 neighbours spreads roughly 1.7 to each, below the severity threshold of 10, and scores zero. A peripheral airport with four neighbours concentrates 25 onto each and scores highly. The vulnerability ranking can therefore place mid-size airports above the largest hubs. Read `ripple_severity` as concentration of local dependency, not network-wide importance.
+**This is a structural model, not an operational one.** Ripple propagation runs over
+route dependencies and stops at two hops. It does not model aircraft rotations, crew
+legality, or passenger rebooking, and it does not predict delay minutes. It answers
+what a removal does to the network's ability to carry traffic.
 
-**Connectivity terms go flat on well-connected networks.** `LCC_Loss` and `Reachability_Loss` only separate airports when a removal actually disconnects something. If every airport has two independent paths into the core, both terms collapse to the same constant for every airport and `ImpactScore` reduces to its ripple term alone. Check the spread of those columns before drawing conclusions from impact.
+**Eigenvector centrality is scoped to the connected core.** It is well defined only
+inside a strongly connected component, so it is computed on the largest one and left
+undefined outside it. On a real snapshot that is nearly every airport.
 
-**Percentile ties use the max rule.** The specification defines `P()` but not a tie-breaking rule. Every composite here uses max-rank, so the top value always reaches exactly 100. `ImpactScore` often takes only a handful of distinct values per snapshot, producing large tie groups where comparing two airports is not meaningful.
+**Percentile ties use the max rule.** The specification defines the percentile
+operator but not a tie-breaking rule; every composite here uses max-rank, so the top
+value always reaches exactly 100. With the connectivity and ripple terms now
+traffic-weighted, ties are rare — impact score takes 334 distinct values across 348
+real airports — but airports whose underlying scores are genuinely tied are not
+meaningfully ordered.
 
-**Eigenvector centrality requires strong connectivity.** It is a secondary metric, written as an empty column when the snapshot is not strongly connected rather than filled with a misleading value. The pipeline logs a warning when that happens.
+**One month at a time.** Scores rank airports *within* a snapshot. Comparing across
+months means comparing percentiles computed over different populations, which is why
+[stability is checked explicitly](docs/validation_december_2022.md) rather than
+assumed.
 
 ### Generated Artifacts
 
@@ -498,7 +517,7 @@ PYTHONPATH=src .venv/bin/python -m pytest tests -q -k "not streamlit"
 
 ### Test Coverage
 
-**92 tests, all passing, no skips**, in roughly 3 seconds end to end.
+**104 tests, all passing, no skips**, in roughly 3 seconds end to end.
 
 - **ETL**: column and join contracts for all three canonical tables, roundtrip writes
 - **Metrics**: centrality math, hub and bridge composites, Leiden partition coverage, route criticality

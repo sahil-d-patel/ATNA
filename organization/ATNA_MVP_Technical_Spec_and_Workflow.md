@@ -510,11 +510,25 @@ Seed(v) = 0.5 * Shock(u, v)
 
 Then propagate from both endpoints using the same 2-hop logic.
 
-## 8.6 Locked constants
+## 8.6 Constants
 ```text
-Shock(airport removal) = 100
+Shock(airport removal r) = 100 * s_total(r) / max_k s_total(k)
 λ = 0.35
 ```
+
+### Rationale for a strength-proportional shock
+
+A fixed shock of 100 is conserved regardless of how large the removed airport is,
+and `Share` then divides it across that airport's neighbours. The larger the airport,
+the thinner its own shock spreads. Measured on a 348-airport November 2022 snapshot,
+DFW has 360 neighbours, so a fixed shock reaches each of them with 0.28 — far below
+the severity threshold — and **every major hub scored a ripple severity of exactly
+zero**.
+
+Scaling the shock by the removed airport's strength, normalised so the largest
+airport releases 100, states the obvious property the fixed constant denied: losing
+a hub releases more disruption than losing a spoke. This matches the route-removal
+shock in §8.5, which was already proportional to route weight.
 
 ## 8.7 Hop policy
 - hop 0: edited airport or route seed
@@ -577,8 +591,31 @@ The formula is unchanged in shape; only the unit of account moves from "pairs" t
 ## 9.3 Ripple severity
 
 ```text
-RippleSeverity = 100 * (number of airports with Exposure >= 10) / total_airports
+RippleSeverity = Σ_j Exposure(j) * s_total(j) / Σ_j s_total(j)
 ```
+
+The traffic-weighted mean exposure across the network. Since `Exposure` is bounded by
+`Shock` and `Shock ≤ 100`, the result is already on the 0–100 scale.
+
+### Rationale for weighting rather than counting
+
+Counting airports above a fixed threshold of 10 discards the magnitude of every
+exposure and the size of every airport it happened to. On the November 2022 snapshot
+that count produced only **9 distinct values across 348 airports**, and ranked
+Midland and Santa Rosa above every hub in the country.
+
+Both changes were selected by testing them against the December 2022 disruption
+(see `docs/validation_december_2022.md`) rather than by argument:
+
+| Formulation | Distinct values | Hubs in top 10 | Validation ρ | Partial ρ |
+|---|---:|---:|---:|---:|
+| Fixed shock, count ≥ 10 | 9 | 0 | +0.387 | +0.386 |
+| Fixed shock, weighted | 332 | 0 | +0.387 | +0.386 |
+| Strength shock, count ≥ 10 | 1 | 0 | +0.411 | +0.457 |
+| **Strength shock, weighted** | **332** | **9** | **+0.411** | **+0.457** |
+
+The adopted pair is the only one that both discriminates between airports and
+improves agreement with what actually happened.
 
 ## 9.4 Impact Score
 Purpose:

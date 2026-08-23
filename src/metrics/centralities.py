@@ -79,21 +79,54 @@ def compute_betweenness(G: nx.DiGraph) -> pd.Series:
 
 
 def compute_eigenvector(G: nx.DiGraph) -> pd.Series:
-    """Eigenvector centrality when numerically stable; else all-NaN (spec §7.4)."""
+    """Eigenvector centrality, restricted to the largest strongly connected component.
+
+    Eigenvector centrality is only well defined on a strongly connected graph: outside
+    one, the dominant eigenvector concentrates on whichever terminal component the
+    power iteration happens to reach, and the resulting values are not comparable.
+
+    Rather than abandoning the whole column when the snapshot is not strongly
+    connected, the score is computed on the largest strongly connected component and
+    left undefined outside it. That component holds nearly every airport on a real
+    snapshot, so an airport that could carry a meaningful value gets one; an airport
+    that genuinely cannot is ``NaN`` rather than a number that would not mean what it
+    appears to mean.
+
+    The restriction is reported, since a reader comparing two snapshots needs to know
+    that the population changed.
+    """
     nodes = sorted(G.nodes())
     if not nodes:
         return pd.Series(dtype=float)
+
+    target: nx.DiGraph = G
+    if not nx.is_strongly_connected(G):
+        largest = max(nx.strongly_connected_components(G), key=len)
+        if len(largest) < 2:
+            logger.warning(
+                "eigenvector centrality is undefined for this snapshot: the largest "
+                "strongly connected component holds %d airport(s), so the column is "
+                "empty.",
+                len(largest),
+            )
+            return pd.Series(np.nan, index=nodes, dtype=float)
+        logger.info(
+            "graph is not strongly connected; eigenvector centrality computed on the "
+            "largest strongly connected component (%d of %d airports), and left "
+            "undefined for the remaining %d.",
+            len(largest), len(nodes), len(nodes) - len(largest),
+        )
+        target = G.subgraph(largest)
+
     try:
-        ec = _eigenvector_centrality_deterministic(G, weight="weight")
-        return pd.Series(ec, dtype=float).reindex(nodes)
+        centrality = _eigenvector_centrality_deterministic(target, weight="weight")
     except Exception as exc:
-        # Spec §7.4 keeps eigenvector as a secondary metric and tolerates an all-NaN
-        # column, but a silent debug line makes an entirely empty column in metrics.csv
-        # look like a data problem. Warn so the cause is visible in pipeline output.
         logger.warning(
-            "eigenvector centrality unavailable for this snapshot (%s); "
-            "the eigenvector column will be empty. This is expected when the directed "
-            "graph is not strongly connected.",
+            "eigenvector centrality did not converge for this snapshot (%s); the "
+            "column will be empty.",
             exc,
         )
         return pd.Series(np.nan, index=nodes, dtype=float)
+
+    # Airports outside the component keep NaN through the reindex.
+    return pd.Series(centrality, dtype=float).reindex(nodes)

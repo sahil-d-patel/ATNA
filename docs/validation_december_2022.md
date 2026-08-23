@@ -37,15 +37,31 @@ data is unambiguous:
 
 | Measure | Value | p |
 |---|---:|---:|
-| Spearman ρ, exposure vs observed damage | **+0.387** | 1.6 × 10⁻⁶ |
-| Pearson r | +0.289 | 4.5 × 10⁻⁴ |
-| **Partial ρ, controlling for airport size** | **+0.386** | 1.8 × 10⁻⁶ |
+| Spearman ρ, exposure vs observed damage | **+0.411** | 3.1 × 10⁻⁷ |
+| Pearson r | +0.347 | 2.1 × 10⁻⁵ |
+| **Partial ρ, controlling for airport size** | **+0.457** | 8.3 × 10⁻⁹ |
 | Airport size alone vs observed damage | +0.246 | — |
 
 The obvious objection is that large airports both attract more predicted exposure and
 cancel more flights in any disruption. They do — size alone correlates at +0.246. But
 partialling size out of both variables leaves the relationship essentially untouched,
-at +0.386. **Exposure carries information beyond how big an airport is.**
+at +0.457. **Exposure carries information beyond how big an airport is.**
+
+## The event also corrected the model
+
+This test is not only a scorecard; it selected between candidate formulations of the
+ripple model. Four combinations of shock rule and severity rule were measured against
+it:
+
+| Formulation | Distinct values | Hubs in top 10 | ρ | Partial ρ |
+|---|---:|---:|---:|---:|
+| Fixed shock, count ≥ 10 (original) | 9 | 0 | +0.387 | +0.386 |
+| Fixed shock, traffic-weighted | 332 | 0 | +0.387 | +0.386 |
+| Strength shock, count ≥ 10 | 1 | 0 | +0.411 | +0.457 |
+| **Strength shock, traffic-weighted** | **332** | **9** | **+0.411** | **+0.457** |
+
+Only the adopted pair both discriminates between airports and agrees better with what
+happened. Neither change was argued into place; both were measured.
 
 Ten highest-exposure airports, with what actually happened to them:
 

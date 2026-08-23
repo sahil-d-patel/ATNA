@@ -83,21 +83,28 @@ def render_methodology_page() -> None:
         """
     )
 
-    st.subheader("Ripple severity favours low-degree airports")
+    st.subheader("What the ripple model does and does not claim")
     st.markdown(
         """
-        Removing an airport releases a fixed shock of 100, distributed across its
-        neighbours in proportion to `Share(i,j)`, which normalises by that airport's
-        *own* total dependency. A hub with 60 neighbours therefore spreads roughly 1.7
-        to each, below the severity threshold of 10, and scores a ripple severity of
-        **zero**. A peripheral airport with four neighbours concentrates 25 onto each
-        and scores highly.
+        Ripple exposure once favoured low-degree airports. A fixed shock of 100 was
+        conserved regardless of the removed airport's size, and `Share` divided it
+        among that airport's neighbours, so the larger the airport the thinner its own
+        shock spread. On a real 348-airport snapshot **every major hub scored exactly
+        zero**, and severity — a count of airports above a fixed threshold — took only
+        **nine distinct values across 348 airports**.
 
-        The effect is structural, not a defect in the data: the more connected an
-        airport is, the thinner its shock spreads. Consequently the vulnerability
-        ranking can place mid-size airports above the largest hubs. Read
-        `ripple_severity` as *concentration of local dependency*, not as
-        network-wide importance.
+        Both are fixed. The shock is now proportional to the removed airport's strength
+        (§8.6) and severity is the traffic-weighted mean exposure (§9.3). Severity now
+        takes 332 distinct values and ranks ATL, DFW, DEN, ORD.
+
+        The pair was chosen by testing it against the December 2022 disruption rather
+        than by argument: it raised agreement with what actually happened from
+        ρ = +0.387 to **+0.411**, and from +0.386 to **+0.457** once airport size is
+        controlled for.
+
+        What it still does not claim: this is a *structural* propagation over route
+        dependencies, capped at two hops. It does not model aircraft rotations, crew
+        legality, or passenger rebooking, and it does not predict delay minutes.
         """
     )
 
@@ -135,13 +142,18 @@ def render_methodology_page() -> None:
         """
     )
 
-    st.subheader("Eigenvector centrality requires strong connectivity")
+    st.subheader("Eigenvector centrality is scoped to the connected core")
     st.markdown(
         """
-        Eigenvector centrality is a secondary metric. It is well defined only on a
-        strongly connected graph; when the snapshot is not strongly connected the
-        column is written as empty rather than being filled with a value that would not
-        mean what it appears to mean. The pipeline logs a warning when this happens.
+        Eigenvector centrality is well defined only inside a strongly connected
+        component. It used to be abandoned entirely — an empty column — whenever the
+        snapshot as a whole was not strongly connected, which cost every airport in the
+        giant component a value it could legitimately have carried.
+
+        It is now computed on the largest strongly connected component, which holds
+        nearly every airport on a real snapshot, and left undefined outside it. An
+        airport that genuinely cannot carry a comparable value shows no value rather
+        than a misleading one, and the pipeline logs how many airports were in scope.
         """
     )
 

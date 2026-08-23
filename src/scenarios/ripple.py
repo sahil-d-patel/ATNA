@@ -7,8 +7,16 @@ from collections.abc import Mapping, Sequence
 
 import networkx as nx
 
+from scenarios.scoring import node_strengths
+
 LAMBDA_DISCOUNT = 0.35
-AIRPORT_REMOVAL_SHOCK = 100.0
+
+# Ceiling for the shock an airport releases when removed. The largest airport in the
+# snapshot releases exactly this; everything else releases proportionally less.
+MAX_AIRPORT_REMOVAL_SHOCK = 100.0
+
+# Retained for callers that want the pre-2026 fixed-shock behavior explicitly.
+AIRPORT_REMOVAL_SHOCK = MAX_AIRPORT_REMOVAL_SHOCK
 
 
 def build_dependency_weights(graph: nx.DiGraph) -> dict[int, dict[int, float]]:
@@ -42,12 +50,35 @@ def normalize_neighbor_shares(
     return shares
 
 
+def airport_removal_shock(
+    airport_id: int, strengths: Mapping[int, float]
+) -> float:
+    """Shock released by removing one airport (spec §8.6).
+
+    Proportional to the airport's own strength, normalised so the largest airport in
+    the snapshot releases ``MAX_AIRPORT_REMOVAL_SHOCK``.
+
+    A fixed shock is conserved no matter how large the removed airport is, and
+    ``Share`` then divides it among that airport's neighbours — so the bigger the
+    airport, the thinner its own shock spreads. On a real snapshot that gave every
+    major hub a ripple severity of exactly zero, which is the opposite of the
+    intended reading.
+    """
+    if not strengths:
+        return 0.0
+    largest = max(strengths.values())
+    if largest <= 0.0:
+        return 0.0
+    return MAX_AIRPORT_REMOVAL_SHOCK * float(strengths.get(int(airport_id), 0.0)) / largest
+
+
 def airport_removal_exposure(
     graph: nx.DiGraph,
     removed_airport_id: int,
     *,
     lambda_discount: float = LAMBDA_DISCOUNT,
     precomputed_shares: Mapping[int, Mapping[int, float]] | None = None,
+    strengths: Mapping[int, float] | None = None,
 ) -> dict[int, dict[str, float | int]]:
     """Compute 2-hop exposure after removing an airport from baseline topology.
 
@@ -63,7 +94,9 @@ def airport_removal_exposure(
         shares: Mapping[int, Mapping[int, float]] = normalize_neighbor_shares(dependency)
     else:
         shares = precomputed_shares
-    seed = {int(removed_airport_id): AIRPORT_REMOVAL_SHOCK}
+    if strengths is None:
+        strengths = node_strengths(graph)
+    seed = {int(removed_airport_id): airport_removal_shock(removed_airport_id, strengths)}
     return _propagate_two_hops(shares, seed, lambda_discount=lambda_discount)
 
 
@@ -143,6 +176,7 @@ def airport_set_removal_exposure(
     *,
     lambda_discount: float = LAMBDA_DISCOUNT,
     precomputed_shares: Mapping[int, Mapping[int, float]] | None = None,
+    strengths: Mapping[int, float] | None = None,
 ) -> dict[int, dict[str, float | int]]:
     """Two-hop exposure after removing several airports simultaneously.
 
@@ -162,5 +196,10 @@ def airport_set_removal_exposure(
     else:
         shares = precomputed_shares
 
-    seeds = {int(airport): AIRPORT_REMOVAL_SHOCK for airport in removed_airport_ids}
+    if strengths is None:
+        strengths = node_strengths(graph)
+    seeds = {
+        int(airport): airport_removal_shock(airport, strengths)
+        for airport in removed_airport_ids
+    }
     return _propagate_two_hops(shares, seeds, lambda_discount=lambda_discount)

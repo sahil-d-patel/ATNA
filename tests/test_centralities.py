@@ -106,8 +106,25 @@ def test_eigenvector_matches_networkx_reference():
     )
 
 
-def test_eigenvector_returns_nan_when_not_strongly_connected():
-    """Spec §7.4 treats eigenvector as secondary; an unusable graph yields an empty column."""
+def test_eigenvector_restricts_to_the_largest_strong_component():
+    """Airports that can carry a value get one; the rest are left undefined.
+
+    Eigenvector centrality is meaningful only inside a strongly connected component,
+    so abandoning the whole column costs every airport that sits in the giant one.
+    """
+    graph = nx.DiGraph()
+    nx.add_cycle(graph, [1, 2, 3, 4, 5])
+    for source, target in list(graph.edges()):
+        graph[source][target]["weight"] = 1.0
+    graph.add_edge(5, 99, weight=1.0)  # reachable, but never returns
+
+    result = compute_eigenvector(graph)
+    assert result.loc[[1, 2, 3, 4, 5]].notna().all(), "the giant component must be scored"
+    assert pd.isna(result.loc[99]), "a node outside the component has no defined value"
+
+
+def test_eigenvector_is_empty_when_no_component_qualifies():
+    """A graph with no cycle has no component larger than one airport."""
     graph = nx.DiGraph()
     graph.add_edge(1, 2, weight=1.0)  # no path back from 2 to 1
     result = compute_eigenvector(graph)
