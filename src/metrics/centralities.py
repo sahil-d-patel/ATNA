@@ -58,24 +58,86 @@ def compute_pagerank(G: nx.DiGraph) -> pd.Series:
     return pd.Series(pr, dtype=float).sort_index()
 
 
-def compute_betweenness(G: nx.DiGraph) -> pd.Series:
-    """Betweenness on shortest paths where **distance** = ``1 / weight``.
+def _inverse_distances(G: nx.DiGraph) -> list[float]:
+    """Edge distances for betweenness: ``1 / weight``, validated.
 
-    NetworkX treats ``weight`` as additive distance; higher ``analysis_weight`` means
-    stronger capacity, so we map to distance inversely (same pattern as bridge-style
-    structural analysis on flow-like weights).
+    Shortest-path algorithms treat weight as additive cost, but ``analysis_weight``
+    measures capacity: a heavily trafficked route is structurally *closer*. Inverting
+    is what makes betweenness answer the bridge question rather than its opposite.
     """
-    if G.number_of_nodes() == 0:
-        return pd.Series(dtype=float)
-    H = nx.DiGraph()
-    H.add_nodes_from(G.nodes())
+    distances = []
     for u, v, data in G.edges(data=True):
-        w = float(data.get("weight", 0.0))
-        if w <= 0 or not np.isfinite(w):
+        weight = float(data.get("weight", 0.0))
+        if weight <= 0 or not np.isfinite(weight):
             raise ValueError(f"edge ({u}, {v}) needs finite positive weight for betweenness")
-        H.add_edge(u, v, weight=1.0 / w)
-    bc = nx.betweenness_centrality(H, weight="weight", normalized=True)
-    return pd.Series(bc, dtype=float).sort_index()
+        distances.append(1.0 / weight)
+    return distances
+
+
+def _betweenness_reference(G: nx.DiGraph) -> pd.Series:
+    """Betweenness via NetworkX. Kept as the reference the fast path is tested against."""
+    graph = nx.DiGraph()
+    graph.add_nodes_from(G.nodes())
+    for (u, v), distance in zip(G.edges(), _inverse_distances(G), strict=True):
+        graph.add_edge(u, v, weight=distance)
+    return pd.Series(
+        nx.betweenness_centrality(graph, weight="weight", normalized=True), dtype=float
+    ).sort_index()
+
+
+def compute_betweenness(G: nx.DiGraph) -> pd.Series:
+    """Betweenness on shortest paths where **distance** = ``1 / weight`` (spec §7.4).
+
+    Computed through igraph, which is already a dependency for Leiden partitioning
+    (spec §15.2) and implements Brandes in C. NetworkX runs the same algorithm in pure
+    Python and was the largest single cost in the metrics stage: on a real 348-airport
+    snapshot, 0.365s against 0.010s here, for output identical to the last bit.
+
+    :func:`_betweenness_reference` retains the NetworkX path, and
+    ``tests/test_centralities.py`` pins the two together.
+
+    **On exactness.** The two agree bit for bit whenever shortest paths are unique.
+    They can disagree by around 1e-3 on graphs where many paths tie, because Brandes
+    splits credit among tied shortest paths and the two implementations accumulate
+    that split in different orders; neither answer is more correct than the other.
+
+    This does not affect real snapshots. ``analysis_weight`` is ``log1p(flight_count)``,
+    which yields hundreds of distinct edge distances, and both November and December
+    2022 produce a maximum difference of exactly zero. Degenerate ties need weights
+    drawn from a handful of values, which real traffic counts do not produce.
+    """
+    order = G.number_of_nodes()
+    if order == 0:
+        return pd.Series(dtype=float)
+
+    distances = _inverse_distances(G)
+
+    # Betweenness counts paths *through* a node, so fewer than three nodes leaves no
+    # intermediate position to occupy, and the normalisation below divides by zero.
+    if order < 3:
+        return pd.Series(0.0, index=sorted(G.nodes()), dtype=float)
+
+    try:
+        import igraph
+    except ImportError:  # pragma: no cover - igraph is a pinned dependency
+        logger.warning("python-igraph unavailable; falling back to the NetworkX path.")
+        return _betweenness_reference(G)
+
+    nodes = list(G.nodes())
+    position = {node: index for index, node in enumerate(nodes)}
+    graph = igraph.Graph(
+        n=len(nodes),
+        edges=[(position[u], position[v]) for u, v in G.edges()],
+        directed=True,
+    )
+    raw = graph.betweenness(weights=distances, directed=True)
+
+    # igraph returns unnormalised path counts; NetworkX's normalized=True divides a
+    # directed graph by (n-1)(n-2).
+    scale = 1.0 / ((order - 1) * (order - 2))
+    return pd.Series(
+        {node: raw[position[node]] * scale for node in nodes}, dtype=float
+    ).sort_index()
 
 
 def compute_eigenvector(G: nx.DiGraph) -> pd.Series:

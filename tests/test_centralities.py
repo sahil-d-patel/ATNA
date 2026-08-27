@@ -6,6 +6,7 @@ import pandas as pd
 import pytest
 
 from metrics.centralities import (
+    _betweenness_reference,
     compute_betweenness,
     compute_eigenvector,
     compute_pagerank,
@@ -130,3 +131,64 @@ def test_eigenvector_is_empty_when_no_component_qualifies():
     result = compute_eigenvector(graph)
     assert list(result.index) == [1, 2]
     assert result.isna().all()
+
+
+@pytest.mark.parametrize(("order", "probability", "seed"), [
+    (12, 0.20, 11), (20, 0.30, 12), (35, 0.15, 13), (25, 0.55, 14),
+])
+def test_betweenness_fast_path_is_exact_when_paths_are_unique(order, probability, seed):
+    """igraph replaces NetworkX for speed only; on real weights the values must not move.
+
+    Betweenness feeds bridge_score directly, so a discrepancy would silently change a
+    published artifact column. Weights are drawn continuously here because that is what
+    real data looks like: analysis_weight is log1p(flight_count), which gives hundreds
+    of distinct edge distances and effectively no tied shortest paths.
+    """
+    generator = np.random.default_rng(seed)
+    graph = nx.DiGraph(nx.gnp_random_graph(order, probability, seed=seed, directed=True))
+    for source, target in graph.edges():
+        graph[source][target]["weight"] = float(generator.uniform(0.5, 9.0))
+
+    fast = compute_betweenness(graph)
+    reference = _betweenness_reference(graph)
+    assert list(fast.index) == list(reference.index)
+    assert fast.to_numpy().tolist() == reference.to_numpy().tolist()
+
+
+def test_betweenness_paths_only_diverge_within_tolerance_under_heavy_ties():
+    """Tied shortest paths make the credit split ambiguous, and the two differ slightly.
+
+    Brandes divides credit among tied shortest paths, and the two implementations
+    accumulate that division in different orders. Neither answer is more correct. This
+    pins the size of the disagreement so a real regression cannot hide behind it, and
+    documents that it needs a weight distribution real traffic does not produce.
+    """
+    graph = nx.DiGraph(nx.gnp_random_graph(35, 0.15, seed=200, directed=True))
+    for offset, (source, target) in enumerate(list(graph.edges())):
+        graph[source][target]["weight"] = 1.0 + (offset % 3)
+
+    distinct = {graph[u][v]["weight"] for u, v in graph.edges()}
+    assert len(distinct) == 3, "this fixture exists to be degenerate"
+
+    difference = (compute_betweenness(graph) - _betweenness_reference(graph)).abs().max()
+    assert difference < 1e-2
+
+
+def test_betweenness_handles_graphs_too_small_to_have_intermediates():
+    """Fewer than three nodes leaves no through-position, and normalisation divides by zero."""
+    single = nx.DiGraph()
+    single.add_node(7)
+    assert compute_betweenness(single).tolist() == [0.0]
+
+    pair = nx.DiGraph()
+    pair.add_edge(1, 2, weight=2.0)
+    assert compute_betweenness(pair).tolist() == [0.0, 0.0]
+
+
+def test_betweenness_rejects_a_non_positive_weight():
+    """An inverted distance needs a positive finite weight; failing loudly beats NaN."""
+    graph = nx.DiGraph()
+    graph.add_edge(1, 2, weight=0.0)
+    graph.add_edge(2, 3, weight=1.0)
+    with pytest.raises(ValueError, match="finite positive weight"):
+        compute_betweenness(graph)
