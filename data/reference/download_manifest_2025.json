@@ -1,26 +1,16 @@
 {
-  "started_at": "2026-08-20T06:38:28.019074+00:00",
-  "finished_at": "2026-08-20T06:38:47.559484+00:00",
+  "started_at": "2026-08-27T17:58:02.453363+00:00",
+  "finished_at": "2026-08-27T17:58:49.343135+00:00",
   "records": [
     {
-      "dataset": "t100_segment",
-      "source_url": "https://www.transtats.bts.gov/DL_SelectFields.asp?QO_fu146_anzr=&gnoyr_VQ=FMG",
-      "year": "2022",
-      "month": "11",
-      "target_path": "data/raw/t100_segment/2022/t100_2022_11.csv",
+      "dataset": "on_time_reporting",
+      "source_url": "https://www.transtats.bts.gov/DL_SelectFields.aspx?QO_fu146_anzr=b0-gvzr&gnoyr_VQ=FGJ",
+      "year": "2023",
+      "month": "01",
+      "target_path": "data/raw/on_time/2023/on_time_2023_01.csv",
       "status": "ok",
       "notes": "",
-      "saved_bytes": 4649958
-    },
-    {
-      "dataset": "t100_segment",
-      "source_url": "https://www.transtats.bts.gov/DL_SelectFields.asp?QO_fu146_anzr=&gnoyr_VQ=FMG",
-      "year": "2022",
-      "month": "12",
-      "target_path": "data/raw/t100_segment/2022/t100_2022_12.csv",
-      "status": "ok",
-      "notes": "",
-      "saved_bytes": 4736491
+      "saved_bytes": 73216413
     }
   ]
 }

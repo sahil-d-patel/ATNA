@@ -2,6 +2,36 @@
 
 Notable changes to ATNA. Dates are the date the work landed.
 
+## 2026-08-27
+
+### Added
+
+- **Second validation event.** The harness now takes an arbitrary event window and was
+  pointed at the 11 January 2023 FAA NOTAM outage. Spearman ρ = +0.206 (p = 0.042),
+  partial ρ = +0.302 — weaker than December 2022, and the reason is the finding:
+  December was a *propagating* failure, January a *uniform* one where nothing spread
+  through the network. Airport size explains nothing about January (−0.073) while
+  network position still does. The model predicts disruptions that propagate.
+- **Correlated outage in the editor.** `airport_set_removal` existed in the engine but
+  had no interface; the scenario editor now removes several airports in one scenario.
+- **Snapshot Comparison page.** Rank agreement between any two built snapshots, with a
+  slope chart of the largest movers.
+
+### Changed
+
+- **Betweenness computed through igraph**, already a dependency for Leiden. 0.345s to
+  0.134s on a real snapshot, with output identical to the last bit wherever shortest
+  paths are unique. Tied paths can differ by ~1e-3 because Brandes splits credit among
+  them; real `log1p` weights produce 490 distinct distances and a difference of exactly
+  zero.
+
+### Fixed
+
+- Snapshot ids parsed as dates by Plotly, rendering a November timeline from
+  `2022-11` / `2022-12`.
+- Unused dataclass in the validation script; stale test count and missing
+  `scripts/validation/` entry in the contributor docs; page count corrected to eight.
+
 ## 2026-08-23
 
 ### Changed — the ripple model, selected by measurement

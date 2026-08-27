@@ -63,9 +63,32 @@ This event is also how the model was *corrected*: two ripple formulations were t
 against it, and the pair adopted is the one that both discriminated between airports
 and agreed better with what happened (ρ +0.387 → +0.411, partial +0.386 → +0.457).
 
-This is one event, the correlation is moderate, and geography is a confounder the test
-cannot separate from network position. [The full write-up](docs/validation_december_2022.md)
-states what the result does and does not establish.
+### A second event, with a different failure mode
+
+One event is an observation, not a track record. The harness was pointed at the
+11 January 2023 FAA NOTAM outage, which grounded departures nationwide (0.5% → 6.96%
+cancellations in a day):
+
+| Measure | Dec 2022 | Jan 2023 |
+|---|---:|---:|
+| Spearman ρ | **+0.411** | **+0.206** |
+| Partial ρ, size controlled | **+0.457** | **+0.302** |
+| Airport size alone | +0.246 | **−0.073** |
+
+Weaker, and the reason is the point. December was a *propagating* failure that spread
+outward through routes — exactly what a two-hop ripple models. January was a *uniform*
+failure: a national system went down and nothing propagated, because the network was
+not the transmission mechanism.
+
+Notably, size explains nothing about who suffered on 11 January (−0.073) while network
+position still does (+0.302), so controlling for size *raises* the correlation here.
+
+**The honest reading:** ATNA predicts disruptions that spread through the route
+network, well when spreading is the mechanism and weakly when it is not. That is a
+boundary established by measurement, not asserted. Geography remains a confounder the
+December test cannot separate from network position.
+[The full write-up](docs/validation_december_2022.md) states what both results do and
+do not establish.
 
 ### Are the scores stable?
 

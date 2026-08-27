@@ -1,4 +1,4 @@
-# Validation against the December 2022 disruption
+# Validation against real disruptions
 
 Every score ATNA produces is a modelling output. This document records the one check
 that asks whether those outputs correspond to something that happened.
@@ -140,4 +140,73 @@ network is stable, moving where service genuinely changed.
 ```bash
 PYTHONPATH=src python scripts/validation/snapshot_stability.py \
     --baseline 2022-11 --comparison 2022-12
+```
+
+
+---
+
+# Second event: the January 2023 FAA outage
+
+One event is an observation, not a track record. The obvious question is whether the
+December result generalises or fits that event, so the harness was pointed at a second
+disruption with a **different failure mode**.
+
+On 11 January 2023 an FAA NOTAM system failure grounded departures nationwide.
+Cancellations went from a ~0.5% baseline to **6.96%** on the day and returned
+immediately:
+
+| Date | Cancellations |
+|---|---:|
+| Jan 9 | 0.69% |
+| Jan 10 | 1.01% |
+| **Jan 11** | **6.96%** |
+| Jan 12 | 0.67% |
+| Jan 13 | 0.46% |
+
+Same method: network built from **December 2022**, seeds chosen from the observed data,
+event window 11–12 January against a 1–10 January control.
+
+## Result
+
+| Measure | Dec 2022 | Jan 2023 |
+|---|---:|---:|
+| Airports tested | 144 | 98 |
+| Spearman ρ | **+0.411** (p = 3.1 × 10⁻⁷) | **+0.206** (p = 0.042) |
+| Partial ρ, size controlled | **+0.457** (p = 8.3 × 10⁻⁹) | **+0.302** (p = 0.0025) |
+| Airport size alone | +0.246 | **−0.073** |
+
+The signal is real but weaker, and the reason is informative rather than
+disappointing.
+
+## Why the second event is weaker, and what that tells you
+
+The two disruptions fail differently:
+
+- **December 2022** was a *propagating* failure. A carrier's scheduling collapsed at
+  specific airports and the damage spread outward through the routes connecting them.
+  That is precisely what a two-hop ripple over route dependencies models, and the
+  correlation is correspondingly strong.
+- **January 2023** was a *uniform* failure. A national system went down and grounded
+  departures everywhere at once. Nothing propagated through the network, because the
+  network was not the transmission mechanism.
+
+That the correlation survives at all on a uniform outage is notable, and the size
+column explains why it is worth reporting: **airport size carries essentially no
+information about who suffered on 11 January (−0.073), while network position still
+does (+0.302).** Controlling for size *raises* the correlation here, the opposite of
+December.
+
+**The honest reading:** ATNA predicts disruptions that spread through the route
+network. It predicts them well when spreading is the mechanism, and weakly when it is
+not. That is a boundary on the model's claim, established by measurement rather than
+asserted.
+
+## Reproducing
+
+```bash
+python scripts/download/download_bts_data.py --year 2023 --months 1 --only on_time
+PYTHONPATH=src python scripts/validation/validate_disruption.py \
+    --config config/atna-2022-12.yaml \
+    --event-on-time data/raw/on_time/2023/on_time_2023_01.csv \
+    --event-days 11-12 --control-days 1-10
 ```

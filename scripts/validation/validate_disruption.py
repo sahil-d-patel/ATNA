@@ -50,7 +50,8 @@ from metrics.config import load_config  # noqa: E402
 from metrics.graph_builder import build_analysis_graph, load_edges  # noqa: E402
 from scenarios.engine import run_scenario  # noqa: E402
 
-# The event window, and the stretch of the same month used as its own control.
+# Default event window and the stretch of the same month used as its own control.
+# Both are overridable so the harness can be pointed at a different disruption.
 EVENT_DAYS = range(22, 30)
 CONTROL_DAYS = range(1, 21)
 
@@ -63,7 +64,11 @@ SEED_COUNT = 6
 MIN_CONTROL_FLIGHTS = 200
 
 
-def load_observed(on_time_csv: Path) -> pd.DataFrame:
+def load_observed(
+    on_time_csv: Path,
+    event_days: range = EVENT_DAYS,
+    control_days: range = CONTROL_DAYS,
+) -> pd.DataFrame:
     """Per-airport cancellation rate in the event window versus the control window."""
     frame = pd.read_csv(
         on_time_csv,
@@ -73,8 +78,8 @@ def load_observed(on_time_csv: Path) -> pd.DataFrame:
     frame["day"] = pd.to_datetime(frame["FL_DATE"], format="mixed").dt.day
     frame["CANCELLED"] = pd.to_numeric(frame["CANCELLED"], errors="coerce").fillna(0.0)
 
-    control = frame[frame["day"].isin(CONTROL_DAYS)]
-    event = frame[frame["day"].isin(EVENT_DAYS)]
+    control = frame[frame["day"].isin(control_days)]
+    event = frame[frame["day"].isin(event_days)]
 
     control_stats = control.groupby("ORIGIN_AIRPORT_ID")["CANCELLED"].agg(["mean", "size"])
     event_stats = event.groupby("ORIGIN_AIRPORT_ID")["CANCELLED"].agg(["mean", "size"])
@@ -260,13 +265,36 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Raw BTS on-time CSV covering the event month",
     )
     parser.add_argument("--seeds", type=int, default=SEED_COUNT)
+    parser.add_argument(
+        "--event-days", default="22-29",
+        help="Inclusive day range of the disruption, e.g. '22-29' or '11-14'.",
+    )
+    parser.add_argument(
+        "--control-days", default="1-20",
+        help="Inclusive day range used as the within-month control.",
+    )
+    parser.add_argument("--label", default=None, help="Name for this event in the report")
     return parser.parse_args(argv)
+
+
+def _day_range(spec: str) -> range:
+    """Expand an inclusive ``"start-end"`` day specification."""
+    start, _, end = spec.partition("-")
+    first, last = int(start), int(end or start)
+    if not 1 <= first <= last <= 31:
+        raise ValueError(f"invalid day range: {spec!r}")
+    return range(first, last + 1)
 
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
 
-    observed = load_observed(args.event_on_time)
+    event_days = _day_range(args.event_days)
+    control_days = _day_range(args.control_days)
+    if set(event_days) & set(control_days):
+        raise SystemExit("event and control windows overlap; the control would include the event")
+
+    observed = load_observed(args.event_on_time, event_days, control_days)
     seeds = choose_seeds(observed, args.seeds)
     predicted = predict_exposure(args.config, seeds)
     result = evaluate(observed, predicted, seeds)
@@ -275,6 +303,12 @@ def main(argv: list[str] | None = None) -> int:
     airports = pd.read_csv(cfg.processed_dir / "airports.csv")
     codes = airports.set_index("airport_id_canonical")["airport_code_raw"]
 
+    if args.label:
+        print(f"\n=== {args.label} ===")
+    print(
+        f"Event window: days {min(event_days)}-{max(event_days)}   "
+        f"control: days {min(control_days)}-{max(control_days)}"
+    )
     report(result, seeds, codes)
     return 0
 
