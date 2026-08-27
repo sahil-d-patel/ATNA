@@ -85,6 +85,12 @@ CAPTURES: tuple[Capture, ...] = (
         "clicking it, or through the quick-find control.",
     ),
     Capture(
+        "snapshot-comparison", "render_snapshot_comparison_page", "Snapshot Comparison",
+        "Whether the scores describe the network or one month's sampling. Rank agreement "
+        "between any two built snapshots, and a slope chart of the airports that moved "
+        "most, since the aggregate correlation hides exactly those cases.",
+    ),
+    Capture(
         "methodology", "render_methodology_page", "Methodology",
         "Every formula as implemented, followed by the model's known limitations "
         "stated plainly rather than omitted.",
