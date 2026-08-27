@@ -291,7 +291,7 @@ def _render_map(
     st.caption(
         "**Map guide:** dot size follows hub score and dot color follows vulnerability, "
         "pale to dark as vulnerability rises. Airports affected by the simulated removal "
-        "are shaded by exposure, teal through amber to red. The removed airport is marked ✕."
+        "are shaded by exposure, teal through amber to red, and the removed airport is labelled on the map."
     )
 
 
@@ -327,7 +327,7 @@ def _render_status_bar(
     with undo_column:
         st.write("")  # vertical alignment against the status box
         if st.button(
-            "↩ Undo", key="undo_btn", disabled=not history,
+            "Undo", key="undo_btn", disabled=not history,
             help="Revert to the previous scenario, or to baseline if only one step back.",
             use_container_width=True,
         ):

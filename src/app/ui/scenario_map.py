@@ -147,7 +147,7 @@ def build_scenario_map(
                         "symbol": "x", "size": 18, "color": "#e74c3c",
                         "line": {"width": 2.5, "color": "#7f0000"}, "opacity": 1.0,
                     },
-                    text=[f"✕ {r['iata_code']}"],
+                    text=[f"{r['iata_code']} removed"],
                     textposition="top center",
                     textfont={"size": 11, "color": "#c0392b"},
                     hovertext=(

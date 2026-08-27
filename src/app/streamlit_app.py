@@ -21,9 +21,12 @@ from app.pages.route_explorer import render_route_explorer_page
 from app.pages.scenario_editor import render_scenario_editor_page
 from app.pages.snapshot_comparison import render_snapshot_comparison_page
 
+# The project mark rather than an emoji shortcode: this is the icon in the browser tab.
+_FAVICON = str(Path(__file__).resolve().parent / "assets" / "favicon.png")
+
 st.set_page_config(
     page_title="ATNA",
-    page_icon=":airplane:",
+    page_icon=_FAVICON,
     layout="wide",
     initial_sidebar_state="expanded",
 )
