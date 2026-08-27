@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from typing import Any
 
 import networkx as nx
@@ -127,7 +128,7 @@ def run_ui_scenario(
     return scenario_row, exposure_df
 
 
-def _normalize_payload(scenario_type: ScenarioType, payload: dict[str, Any]) -> dict[str, int]:
+def _normalize_payload(scenario_type: ScenarioType, payload: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(payload, dict):
         raise TypeError("payload must be a dictionary")
 
@@ -135,6 +136,19 @@ def _normalize_payload(scenario_type: ScenarioType, payload: dict[str, Any]) -> 
         if "airport_id" not in payload:
             raise ValueError("Airport-removal scenario requires airport_id")
         return {"airport_id": _as_int(payload["airport_id"], "airport_id")}
+
+    if scenario_type is ScenarioType.AIRPORT_SET_REMOVAL:
+        if "airport_ids" not in payload:
+            raise ValueError("Airport-set removal scenario requires airport_ids")
+        raw = payload["airport_ids"]
+        if isinstance(raw, str | bytes) or not isinstance(raw, Iterable):
+            raise TypeError("airport_ids must be a sequence of airport ids")
+        airports = [_as_int(value, "airport_id") for value in raw]
+        if not airports:
+            raise ValueError("Airport-set removal scenario requires at least one airport")
+        if len(set(airports)) != len(airports):
+            raise ValueError("airport_ids must not repeat an airport")
+        return {"airport_ids": airports}
 
     required = ("origin_id", "destination_id")
     missing = [key for key in required if key not in payload]

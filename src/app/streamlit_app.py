@@ -19,6 +19,7 @@ from app.pages.network_map import render_network_map_page
 from app.pages.overview import render_overview_page
 from app.pages.route_explorer import render_route_explorer_page
 from app.pages.scenario_editor import render_scenario_editor_page
+from app.pages.snapshot_comparison import render_snapshot_comparison_page
 
 st.set_page_config(
     page_title="ATNA",
@@ -38,6 +39,11 @@ pages = [
     st.Page(render_communities_page, title="Communities", icon=":material/group_work:"),
     st.Page(render_route_explorer_page, title="Route Explorer", icon=":material/route:"),
     st.Page(render_scenario_editor_page, title="Scenario Editor", icon=":material/tune:"),
+    st.Page(
+        render_snapshot_comparison_page,
+        title="Snapshot Comparison",
+        icon=":material/compare_arrows:",
+    ),
     st.Page(render_methodology_page, title="Methodology", icon=":material/menu_book:"),
 ]
 

@@ -17,14 +17,14 @@ This project was built as a team project at Texas A&M University against an MVP 
 ---
 
 ### Project Status & Architecture Note
-**Current Release: Full Pipeline, Scenario Engine, and Seven-Page Application**
+**Current Release: Validated Model, Scenario Engine, and Eight-Page Application**
 
 This repository contains the complete analysis stack:
 - Configuration-driven ETL from raw BTS extracts to canonical graph tables
 - Graph metrics engine with PageRank, betweenness, and Leiden community detection
 - Scenario engine with 2-hop ripple propagation and per-airport vulnerability scoring
-- Seven-page Streamlit application with Plotly maps and a revertible scenario editor
-- 104 tests covering column contracts, metric math, artifact reproducibility, loader guards, and headless page rendering
+- Eight-page Streamlit application with Plotly maps and a revertible scenario editor
+- 119 tests covering column contracts, metric math, artifact reproducibility, loader guards, and headless page rendering
 - Validation against a real disruption, and stability checked across two real months
 - Continuous integration running lint, type checks, and the full pipeline on Python 3.10 through 3.13
 
@@ -295,18 +295,19 @@ ATNA/
 │       ├── scenario_service.py #   session state, history, revert
 │       ├── pages/              #   overview, network map, airport explorer,
 │       │                       #   communities, route explorer, scenario editor,
-│       │                       #   methodology
+│       │                       #   snapshot comparison, methodology
 │       └── ui/                 #   shared components and formatters
 ├── scripts/
 │   ├── demo/generate_demo_data.py  # Synthetic BTS-shaped dataset
 │   ├── docs/capture_ui.py          # Playwright UI capture to annotated PDF
+│   ├── validation/                 # Disruption validation, snapshot stability
 │   ├── download/                   # Playwright TranStats downloader + verifier
 │   └── metrics/                    # Static map QA checks
 ├── setupScripts/               # One-command setup / start / pipeline (sh + bat)
 │   ├── setup.sh / setup.bat        # Environment, dependencies, data bootstrap
 │   ├── start.sh / start.bat        # Launch the Streamlit application
 │   └── pipeline.sh / pipeline.bat  # Rebuild all processed artifacts
-├── tests/                      # 104 tests
+├── tests/                      # 119 tests
 ├── data/                       # raw (gitignored), interim, processed, reference
 ├── organization/               # MVP technical specification
 ├── .github/workflows/ci.yml    # Lint + full pipeline + tests on 3.10 to 3.13
@@ -517,12 +518,12 @@ PYTHONPATH=src .venv/bin/python -m pytest tests -q -k "not streamlit"
 
 ### Test Coverage
 
-**104 tests, all passing, no skips**, in roughly 3 seconds end to end.
+**119 tests, all passing, no skips**, in roughly 3 seconds end to end.
 
 - **ETL**: column and join contracts for all three canonical tables, roundtrip writes
 - **Metrics**: centrality math, hub and bridge composites, Leiden partition coverage, route criticality
 - **Scenarios**: graph-edit isolation, ripple propagation, scoring formulas, artifact schemas, vulnerability integration
-- **Application**: artifact loader guards including schema validation, snapshot mismatch, and cache invalidation, plus headless `AppTest` coverage rendering all seven pages
+- **Application**: artifact loader guards including schema validation, snapshot mismatch, and cache invalidation, plus headless `AppTest` coverage rendering all eight pages
 - **Optimization guarantees**: precomputed baseline inputs produce byte-identical scenario rows, and running a scenario never mutates the shared baseline graph
 - **Reproducibility**: eigenvector centrality is bitwise stable across repeated calls, so a frozen input month yields a frozen artifact
 

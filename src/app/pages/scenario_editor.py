@@ -317,6 +317,8 @@ def _render_status_bar(
                     f"Community {int(airport['leiden_community_id'])} · "
                     f"{severity_label} (impact {impact:.1f})"
                 )
+        elif result and st.session_state[_SS_TYPE] == "airport_set":
+            st.info("**Correlated outage simulated.** See results below.")
         elif result and st.session_state[_SS_TYPE] == "route":
             st.info("**Route removal simulated.** See results below.")
         else:
@@ -381,6 +383,67 @@ def _render_results(result: dict[str, Any]) -> None:
         show_table(table)
 
     _render_exposure_outputs(result["exposure_df"])
+
+
+def _render_airport_set_form(
+    airports_geo: pd.DataFrame, config: AppConfig
+) -> None:
+    """Remove several airports at once.
+
+    A correlated outage - a carrier collapse, a regional storm - takes out a set of
+    airports together, and the combined effect is not the sum of the individual ones:
+    exposure accumulates wherever the removed airports share neighbours.
+    """
+    st.subheader("Correlated outage")
+    st.caption(
+        "Remove several airports simultaneously. Exposure accumulates where they share "
+        "neighbours, so the result is not the sum of the individual removals."
+    )
+
+    located = airports_geo.dropna(subset=["latitude", "longitude"])
+    by_label = dict(
+        zip(located["airport_label"].astype(str), located["airport_id"].astype(int), strict=True)
+    )
+
+    with st.form("airport-set-form"):
+        chosen = st.multiselect(
+            "Airports to remove",
+            options=sorted(by_label),
+            help="Two or more airports, removed in a single scenario.",
+        )
+        submitted = st.form_submit_button("Run correlated outage")
+
+    if not submitted:
+        return
+    if len(chosen) < 2:
+        st.warning("Select at least two airports; one airport is the single-removal case above.")
+        return
+
+    airport_ids = [by_label[label] for label in chosen]
+    try:
+        scenario_row, exposure_df = run_ui_scenario(
+            scenario_type="airport_set_removal",
+            payload={"airport_ids": airport_ids},
+            config=config,
+        )
+    except Exception as exc:  # pragma: no cover - engine failures are surfaced, not swallowed
+        st.error(f"Scenario run failed: {exc}")
+        return
+
+    codes = ", ".join(label.split(" · ")[0] for label in chosen)
+    _push_history(
+        {
+            "airport_id": None,
+            "label": f"Outage: {codes}",
+            "scenario_type": "airport_set",
+            "scenario_row": scenario_row,
+            "exposure_df": exposure_df,
+        }
+    )
+    st.session_state[_SS_AIRPORT] = None
+    st.session_state[_SS_TYPE] = "airport_set"
+    st.session_state[_SS_RESULT] = {"scenario_row": scenario_row, "exposure_df": exposure_df}
+    st.rerun()
 
 
 def _render_route_form(
@@ -484,6 +547,8 @@ def render_scenario_editor_page() -> None:
     if result:
         _render_results(result)
         st.divider()
+
+    _render_airport_set_form(airports_geo, config)
 
     _render_route_form(airports_geo, route_pairs, config)
 

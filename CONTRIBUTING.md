@@ -13,7 +13,7 @@ reaches a working app in about a minute. No database, API keys, or accounts.
 ## Before you open a pull request
 
 ```bash
-PYTHONPATH=src .venv/bin/python -m pytest tests -q   # 92 tests, no skips
+PYTHONPATH=src .venv/bin/python -m pytest tests -q   # 119 tests, no skips
 .venv/bin/ruff check src tests scripts
 .venv/bin/python -m mypy
 ```
@@ -74,10 +74,28 @@ alongside them.
 | `scripts/demo/` | Synthetic dataset generator |
 | `scripts/download/` | BTS acquisition and verification |
 | `scripts/docs/` | Interface capture and PDF generation |
+| `scripts/validation/` | Disruption validation and snapshot stability checks |
 
 Each pipeline stage writes CSVs and the next stage reads them, so stages run and test
 independently. The application only ever reads artifacts; if a page needs a number that
 does not exist yet, it belongs in a pipeline stage rather than in the page.
+
+## Checking the model against reality
+
+```bash
+PYTHONPATH=src python scripts/validation/validate_disruption.py \
+    --config config/atna-2022-11.yaml \
+    --event-on-time data/raw/on_time/2022/on_time_2022_12.csv
+
+PYTHONPATH=src python scripts/validation/snapshot_stability.py \
+    --baseline 2022-11 --comparison 2022-12
+```
+
+The first correlates predicted ripple exposure against observed damage in the December
+2022 disruption; the second checks that the scores reproduce between months. Both need
+real BTS data, fetched with `--months 11,12`. If you change the ripple or scoring
+model, rerun the first one: it is how the current formulation was selected, and a
+change that lowers the correlation is a change worth arguing for explicitly.
 
 ## Regenerating the interface document
 

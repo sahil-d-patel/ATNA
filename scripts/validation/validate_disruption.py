@@ -36,7 +36,6 @@ from __future__ import annotations
 
 import argparse
 import sys
-from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
@@ -62,17 +61,6 @@ SEED_COUNT = 6
 # Airports below this many control-period flights are dropped: a handful of departures
 # makes a cancellation rate that swings wildly for reasons unrelated to the network.
 MIN_CONTROL_FLIGHTS = 200
-
-
-@dataclass(frozen=True)
-class Observation:
-    """Per-airport observed degradation across the event."""
-
-    airport_id: int
-    control_rate: float
-    event_rate: float
-    delta: float
-    control_flights: int
 
 
 def load_observed(on_time_csv: Path) -> pd.DataFrame:
